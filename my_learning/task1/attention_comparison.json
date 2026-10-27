@@ -1,0 +1,92 @@
+[
+  {
+    "seq_len": 128,
+    "standard": {
+      "method": "standard",
+      "time_ms": 3.092899998591747,
+      "hbm_reads_bytes": 393216,
+      "hbm_writes_bytes": 655360,
+      "intermediate_memory_bytes": 524288,
+      "flops": 16777216,
+      "arithmetic_intensity": 16.0
+    },
+    "flash_attention": {
+      "method": "flash_attention_sim",
+      "time_ms": 107.24839999966207,
+      "hbm_reads_bytes": 393216,
+      "hbm_writes_bytes": 131072,
+      "intermediate_memory_bytes": 131072,
+      "flops": 16777216,
+      "arithmetic_intensity": 32.0,
+      "block_size": 64,
+      "num_q_blocks": 2
+    },
+    "sdpa": {
+      "method": "sdpa",
+      "time_ms": 10.85120000061579,
+      "flops": 16777216,
+      "dispatch_note": "SDPA 自动选择: FlashAttn > MemEfficient > Math (需满足条件)"
+    },
+    "max_error_flash_vs_std": 3.2782554626464844e-07
+  },
+  {
+    "seq_len": 256,
+    "standard": {
+      "method": "standard",
+      "time_ms": 1.772999999957392,
+      "hbm_reads_bytes": 786432,
+      "hbm_writes_bytes": 2359296,
+      "intermediate_memory_bytes": 2097152,
+      "flops": 67108864,
+      "arithmetic_intensity": 21.333333333333332
+    },
+    "flash_attention": {
+      "method": "flash_attention_sim",
+      "time_ms": 4.9319999998260755,
+      "hbm_reads_bytes": 1310720,
+      "hbm_writes_bytes": 262144,
+      "intermediate_memory_bytes": 131072,
+      "flops": 67108864,
+      "arithmetic_intensity": 42.666666666666664,
+      "block_size": 64,
+      "num_q_blocks": 4
+    },
+    "sdpa": {
+      "method": "sdpa",
+      "time_ms": 1.6354999970644712,
+      "flops": 67108864,
+      "dispatch_note": "SDPA 自动选择: FlashAttn > MemEfficient > Math (需满足条件)"
+    },
+    "max_error_flash_vs_std": 3.2782554626464844e-07
+  },
+  {
+    "seq_len": 512,
+    "standard": {
+      "method": "standard",
+      "time_ms": 10.354100002587074,
+      "hbm_reads_bytes": 1572864,
+      "hbm_writes_bytes": 8912896,
+      "intermediate_memory_bytes": 8388608,
+      "flops": 268435456,
+      "arithmetic_intensity": 25.6
+    },
+    "flash_attention": {
+      "method": "flash_attention_sim",
+      "time_ms": 30.484099999739556,
+      "hbm_reads_bytes": 4718592,
+      "hbm_writes_bytes": 524288,
+      "intermediate_memory_bytes": 131072,
+      "flops": 268435456,
+      "arithmetic_intensity": 51.2,
+      "block_size": 64,
+      "num_q_blocks": 8
+    },
+    "sdpa": {
+      "method": "sdpa",
+      "time_ms": 4.303000001527835,
+      "flops": 268435456,
+      "dispatch_note": "SDPA 自动选择: FlashAttn > MemEfficient > Math (需满足条件)"
+    },
+    "max_error_flash_vs_std": 2.384185791015625e-07
+  }
+]

@@ -1,0 +1,117 @@
+[
+  {
+    "method": "greedy",
+    "generated_tokens": [
+      675,
+      687,
+      909,
+      458,
+      887,
+      459,
+      795,
+      863,
+      426,
+      333
+    ],
+    "num_steps": 30,
+    "total_time_ms": 123.4136999992188,
+    "tpot_ms": 4.11378999997396,
+    "acceptance_rate": 0.0,
+    "effective_tokens_per_step": 0.0,
+    "num_rejections": 0,
+    "draft_model_calls": 0,
+    "target_model_calls": 0
+  },
+  {
+    "method": "sample(T=0.7,k=50,p=0.9)",
+    "generated_tokens": [
+      879,
+      571,
+      450,
+      757,
+      913,
+      98,
+      711,
+      518,
+      7,
+      696
+    ],
+    "num_steps": 32,
+    "total_time_ms": 148.58649999951012,
+    "tpot_ms": 4.643328124984691,
+    "acceptance_rate": 0.0,
+    "effective_tokens_per_step": 0.0,
+    "num_rejections": 0,
+    "draft_model_calls": 0,
+    "target_model_calls": 0
+  },
+  {
+    "method": "speculative(K=2)",
+    "generated_tokens": [
+      990,
+      232,
+      141,
+      436,
+      444,
+      780,
+      783,
+      804,
+      992,
+      627
+    ],
+    "num_steps": 32,
+    "total_time_ms": 490.18190000060713,
+    "tpot_ms": 15.318184375018973,
+    "acceptance_rate": 0.0,
+    "effective_tokens_per_step": 1.0,
+    "num_rejections": 32,
+    "draft_model_calls": 64,
+    "target_model_calls": 96
+  },
+  {
+    "method": "speculative(K=4)",
+    "generated_tokens": [
+      212,
+      118,
+      146,
+      294,
+      638,
+      784,
+      164,
+      243,
+      937,
+      157
+    ],
+    "num_steps": 32,
+    "total_time_ms": 828.8294000012684,
+    "tpot_ms": 25.900918750039637,
+    "acceptance_rate": 0.0,
+    "effective_tokens_per_step": 1.0,
+    "num_rejections": 32,
+    "draft_model_calls": 128,
+    "target_model_calls": 160
+  },
+  {
+    "method": "multi_token(candidates=4)",
+    "generated_tokens": [
+      335,
+      140,
+      804,
+      768,
+      987,
+      287,
+      24,
+      470,
+      975,
+      566
+    ],
+    "num_steps": 32,
+    "total_time_ms": 727.9194000002462,
+    "tpot_ms": 22.747481250007695,
+    "acceptance_rate": 0.0,
+    "effective_tokens_per_step": 1.0,
+    "num_rejections": 32,
+    "draft_model_calls": 128,
+    "target_model_calls": 128
+  }
+]

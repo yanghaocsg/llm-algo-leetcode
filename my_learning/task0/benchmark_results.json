@@ -1,0 +1,107 @@
+{
+  "standard": {
+    "config": {
+      "prompt_tokens": 128,
+      "generated_tokens": 64,
+      "batch_size": 1,
+      "concurrency": 1,
+      "model_name": "sim-llm-1.3b",
+      "dtype": "fp16",
+      "cache_policy": "standard"
+    },
+    "num_requests": 10,
+    "ttft_mean_ms": 15.891,
+    "ttft_p50_ms": 15.344,
+    "ttft_p95_ms": 18.661,
+    "ttft_p99_ms": 18.829,
+    "tpot_mean_ms": 5.153,
+    "e2e_mean_ms": 345.676,
+    "e2e_p99_ms": 406.987,
+    "total_throughput_tps": 555.43,
+    "avg_peak_memory_mb": 6.0
+  },
+  "interactive_short": {
+    "config": {
+      "prompt_tokens": 32,
+      "generated_tokens": 32,
+      "batch_size": 1,
+      "concurrency": 1,
+      "model_name": "sim-llm-1.3b",
+      "dtype": "fp16",
+      "cache_policy": "standard"
+    },
+    "num_requests": 5,
+    "ttft_mean_ms": 6.383,
+    "ttft_p50_ms": 5.528,
+    "ttft_p95_ms": 8.921,
+    "ttft_p99_ms": 9.219,
+    "tpot_mean_ms": 4.484,
+    "e2e_mean_ms": 149.873,
+    "e2e_p99_ms": 162.177,
+    "total_throughput_tps": 427.03,
+    "avg_peak_memory_mb": 1.5
+  },
+  "long_context": {
+    "config": {
+      "prompt_tokens": 1024,
+      "generated_tokens": 128,
+      "batch_size": 1,
+      "concurrency": 1,
+      "model_name": "sim-llm-1.3b",
+      "dtype": "fp16",
+      "cache_policy": "standard"
+    },
+    "num_requests": 5,
+    "ttft_mean_ms": 328.836,
+    "ttft_p50_ms": 328.076,
+    "ttft_p95_ms": 334.562,
+    "ttft_p99_ms": 335.5,
+    "tpot_mean_ms": 13.25,
+    "e2e_mean_ms": 2024.851,
+    "e2e_p99_ms": 2118.173,
+    "total_throughput_tps": 568.93,
+    "avg_peak_memory_mb": 48.0
+  },
+  "batch_processing": {
+    "config": {
+      "prompt_tokens": 256,
+      "generated_tokens": 128,
+      "batch_size": 8,
+      "concurrency": 1,
+      "model_name": "sim-llm-1.3b",
+      "dtype": "fp16",
+      "cache_policy": "standard"
+    },
+    "num_requests": 5,
+    "ttft_mean_ms": 276.633,
+    "ttft_p50_ms": 268.421,
+    "ttft_p95_ms": 313.478,
+    "ttft_p99_ms": 321.498,
+    "tpot_mean_ms": 27.65,
+    "e2e_mean_ms": 3815.815,
+    "e2e_p99_ms": 3898.809,
+    "total_throughput_tps": 100.63,
+    "avg_peak_memory_mb": 96.0
+  },
+  "burst_concurrency": {
+    "config": {
+      "prompt_tokens": 128,
+      "generated_tokens": 64,
+      "batch_size": 1,
+      "concurrency": 16,
+      "model_name": "sim-llm-1.3b",
+      "dtype": "fp16",
+      "cache_policy": "standard"
+    },
+    "num_requests": 5,
+    "ttft_mean_ms": 22.37,
+    "ttft_p50_ms": 22.334,
+    "ttft_p95_ms": 22.775,
+    "ttft_p99_ms": 22.784,
+    "tpot_mean_ms": 5.296,
+    "e2e_mean_ms": 361.313,
+    "e2e_p99_ms": 404.5,
+    "total_throughput_tps": 531.39,
+    "avg_peak_memory_mb": 6.0
+  }
+}
