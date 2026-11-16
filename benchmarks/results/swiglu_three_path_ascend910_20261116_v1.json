@@ -1,0 +1,901 @@
+{
+  "schema_version": "swiglu-three-path-benchmark/v1",
+  "status": "measured",
+  "evidence_scope": "local_full_call_microbenchmark",
+  "device": "Ascend910_9382",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post7",
+  "torch_cuda": null,
+  "triton": "3.6.0",
+  "device_capability": [],
+  "compile": {
+    "backend": "inductor",
+    "fullgraph": true,
+    "dynamic": false,
+    "options": {
+      "triton.cudagraphs": false
+    }
+  },
+  "compiler_wrapper_build_ms": 1206.2390800565481,
+  "preparation_scope": "process_first_call_per_shape; cache_not_cleared; not_pure_compilation",
+  "seed": 42,
+  "autograd": "inference_mode",
+  "warmup": 5,
+  "iterations": 50,
+  "repeats": 6,
+  "timing": "host_wall_clock_with_device_sync_at_window_boundaries",
+  "includes": [
+    "python_dispatch",
+    "output_allocation",
+    "completion_wait"
+  ],
+  "excludes": [
+    "input_generation",
+    "h2d",
+    "preparation",
+    "profiling",
+    "numeric_checks"
+  ],
+  "rows": [
+    {
+      "elements": 4096,
+      "dtype": "torch.float16",
+      "correctness": "passed",
+      "atol": 0.002,
+      "rtol": 0.002,
+      "errors": {
+        "eager": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 0.0021543977499653977
+        },
+        "compile": {
+          "max_abs_error_vs_eager": 0.00390625,
+          "max_abs_error_vs_fp64": 0.0018184033360553187
+        },
+        "triton": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 0.0021543977499653977
+        }
+      },
+      "first_call_completion_ms": {
+        "eager": 0.5041239783167839,
+        "compile": 1975.561692030169,
+        "triton": 919.5817640284076
+      },
+      "execution_activity": {
+        "eager": {
+          "device_events": [
+            "aclnnMul_MulAiCore_Mul",
+            "aclnnSilu_SiluAiCore_Swish"
+          ],
+          "device_event_count": 2
+        },
+        "compile": {
+          "device_events": [
+            "triton_poi_fused_mul_silu_0"
+          ],
+          "device_event_count": 1
+        },
+        "triton": {
+          "device_events": [
+            "fused_swiglu_kernel"
+          ],
+          "device_event_count": 1
+        }
+      },
+      "median_ms": {
+        "eager": 0.08450715919025242,
+        "compile": 0.17544758971780539,
+        "triton": 0.13469132129102945
+      },
+      "median_paired_ratios": {
+        "eager_over_compile": 0.5255165885434416,
+        "eager_over_triton": 0.6392455926947006,
+        "compile_over_triton": 1.2538350106996927
+      },
+      "pairs": [
+        {
+          "repeat": 1,
+          "order": [
+            "eager",
+            "compile",
+            "triton"
+          ],
+          "eager_ms": 0.08353255921974778,
+          "compile_ms": 0.18311426043510437,
+          "triton_ms": 0.14537852024659514,
+          "eager_over_compile": 0.4561772470438024,
+          "eager_over_triton": 0.5745866657471647,
+          "compile_over_triton": 1.259568883522138
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "eager",
+            "triton",
+            "compile"
+          ],
+          "eager_ms": 0.09496045997366309,
+          "triton_ms": 0.14983216067776084,
+          "compile_ms": 0.1785794203169644,
+          "eager_over_compile": 0.5317547778188313,
+          "eager_over_triton": 0.6337788866162817,
+          "compile_over_triton": 1.191863078721993
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "compile",
+            "eager",
+            "triton"
+          ],
+          "compile_ms": 0.17549159936606884,
+          "eager_ms": 0.09414226049557328,
+          "triton_ms": 0.13263900065794587,
+          "eager_over_compile": 0.5364488148472343,
+          "eager_over_triton": 0.7097630412517255,
+          "compile_over_triton": 1.3230769117345265
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "compile",
+            "triton",
+            "eager"
+          ],
+          "compile_ms": 0.15841244021430612,
+          "triton_ms": 0.12692275922745466,
+          "eager_ms": 0.08226015837863088,
+          "eager_over_compile": 0.5192783992680521,
+          "eager_over_triton": 0.6481119610015316,
+          "compile_over_triton": 1.2481011378772477
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "triton",
+            "eager",
+            "compile"
+          ],
+          "triton_ms": 0.13674364192411304,
+          "eager_ms": 0.08103211876004934,
+          "compile_ms": 0.17540358006954193,
+          "eager_over_compile": 0.4619752842440427,
+          "eager_over_triton": 0.5925841788316473,
+          "compile_over_triton": 1.2827183597090646
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "triton",
+            "compile",
+            "eager"
+          ],
+          "triton_ms": 0.1325890002772212,
+          "compile_ms": 0.15236357925459743,
+          "eager_ms": 0.08548175916075706,
+          "eager_over_compile": 0.5610380090764227,
+          "eager_over_triton": 0.6447122987731195,
+          "compile_over_triton": 1.1491419268267422
+        }
+      ]
+    },
+    {
+      "elements": 65536,
+      "dtype": "torch.float16",
+      "correctness": "passed",
+      "atol": 0.002,
+      "rtol": 0.002,
+      "errors": {
+        "eager": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 0.0031264837859446004
+        },
+        "compile": {
+          "max_abs_error_vs_eager": 0.00390625,
+          "max_abs_error_vs_fp64": 0.0019351698505722936
+        },
+        "triton": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 0.0031264837859446004
+        }
+      },
+      "first_call_completion_ms": {
+        "eager": 1.3132019666954875,
+        "compile": 6890.429810038768,
+        "triton": 0.9572480339556932
+      },
+      "execution_activity": {
+        "eager": {
+          "device_events": [
+            "aclnnMul_MulAiCore_Mul",
+            "aclnnSilu_SiluAiCore_Swish"
+          ],
+          "device_event_count": 2
+        },
+        "compile": {
+          "device_events": [
+            "triton_poi_fused_mul_silu_0"
+          ],
+          "device_event_count": 1
+        },
+        "triton": {
+          "device_events": [
+            "fused_swiglu_kernel"
+          ],
+          "device_event_count": 1
+        }
+      },
+      "median_ms": {
+        "eager": 0.06519457907415926,
+        "compile": 0.1428974000737071,
+        "triton": 0.11598804965615273
+      },
+      "median_paired_ratios": {
+        "eager_over_compile": 0.4647614321638374,
+        "eager_over_triton": 0.6063447599784101,
+        "compile_over_triton": 1.279263548615294
+      },
+      "pairs": [
+        {
+          "repeat": 1,
+          "order": [
+            "eager",
+            "compile",
+            "triton"
+          ],
+          "eager_ms": 0.057060320395976305,
+          "compile_ms": 0.15643842052668333,
+          "triton_ms": 0.1242295210249722,
+          "eager_over_compile": 0.36474620623163134,
+          "eager_over_triton": 0.45931369553059964,
+          "compile_over_triton": 1.2592692882977194
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "eager",
+            "triton",
+            "compile"
+          ],
+          "eager_ms": 0.0819305400364101,
+          "triton_ms": 0.125093141105026,
+          "compile_ms": 0.13605464017018676,
+          "eager_over_compile": 0.6021885026039948,
+          "eager_over_triton": 0.654956293467942,
+          "compile_over_triton": 1.0876266993404353
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "compile",
+            "eager",
+            "triton"
+          ],
+          "compile_ms": 0.12492053909227252,
+          "eager_ms": 0.06205235840752721,
+          "triton_ms": 0.12918876018375158,
+          "eager_over_compile": 0.49673463514028104,
+          "eager_over_triton": 0.48032319777097526,
+          "compile_over_triton": 0.9669613588255808
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "compile",
+            "triton",
+            "eager"
+          ],
+          "compile_ms": 0.1578340190462768,
+          "triton_ms": 0.10774657828733325,
+          "eager_ms": 0.0655833794735372,
+          "eager_over_compile": 0.4155211903607942,
+          "eager_over_triton": 0.608681783830227,
+          "compile_over_triton": 1.4648634003520078
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "triton",
+            "eager",
+            "compile"
+          ],
+          "triton_ms": 0.10729296132922173,
+          "eager_ms": 0.06480577867478132,
+          "compile_ms": 0.14974015997722745,
+          "eager_over_compile": 0.4327882291873938,
+          "eager_over_triton": 0.6040077361265932,
+          "compile_over_triton": 1.3956196019024878
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "triton",
+            "compile",
+            "eager"
+          ],
+          "triton_ms": 0.10331192053854465,
+          "compile_ms": 0.1342288195155561,
+          "eager_ms": 0.08843400049954653,
+          "eager_over_compile": 0.6588302036679813,
+          "eager_over_triton": 0.8559902868764566,
+          "compile_over_triton": 1.2992578089328681
+        }
+      ]
+    },
+    {
+      "elements": 1048576,
+      "dtype": "torch.float16",
+      "correctness": "passed",
+      "atol": 0.002,
+      "rtol": 0.002,
+      "errors": {
+        "eager": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 0.005326280530624672
+        },
+        "compile": {
+          "max_abs_error_vs_eager": 0.0078125,
+          "max_abs_error_vs_fp64": 0.003857117367822127
+        },
+        "triton": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 0.005326280530624672
+        }
+      },
+      "first_call_completion_ms": {
+        "eager": 0.5987150361761451,
+        "compile": 5160.654795006849,
+        "triton": 0.290223048068583
+      },
+      "execution_activity": {
+        "eager": {
+          "device_events": [
+            "aclnnMul_MulAiCore_Mul",
+            "aclnnSilu_SiluAiCore_Swish"
+          ],
+          "device_event_count": 2
+        },
+        "compile": {
+          "device_events": [
+            "triton_poi_fused_mul_silu_0"
+          ],
+          "device_event_count": 1
+        },
+        "triton": {
+          "device_events": [
+            "fused_swiglu_kernel"
+          ],
+          "device_event_count": 1
+        }
+      },
+      "median_ms": {
+        "eager": 0.05034976056776941,
+        "compile": 0.10493785026483238,
+        "triton": 0.08542526978999376
+      },
+      "median_paired_ratios": {
+        "eager_over_compile": 0.48896007953595105,
+        "eager_over_triton": 0.6347987103864643,
+        "compile_over_triton": 1.2499396784816845
+      },
+      "pairs": [
+        {
+          "repeat": 1,
+          "order": [
+            "eager",
+            "compile",
+            "triton"
+          ],
+          "eager_ms": 0.05060526076704264,
+          "compile_ms": 0.10416574077680707,
+          "triton_ms": 0.08428756147623062,
+          "eager_over_compile": 0.48581482154937167,
+          "eager_over_triton": 0.6003882409305848,
+          "compile_over_triton": 1.2358376366859558
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "eager",
+            "triton",
+            "compile"
+          ],
+          "eager_ms": 0.04591182107105851,
+          "triton_ms": 0.09101022034883499,
+          "compile_ms": 0.10821758070960641,
+          "eager_over_compile": 0.42425473541364195,
+          "eager_over_triton": 0.5044688486093334,
+          "compile_over_triton": 1.1890706372846584
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "compile",
+            "eager",
+            "triton"
+          ],
+          "compile_ms": 0.10369154158979654,
+          "eager_ms": 0.05788773996755481,
+          "triton_ms": 0.08203173987567425,
+          "eager_over_compile": 0.5582686792000696,
+          "eager_over_triton": 0.7056749016330554,
+          "compile_over_triton": 1.264041720277413
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "compile",
+            "triton",
+            "eager"
+          ],
+          "compile_ms": 0.09944829856976867,
+          "triton_ms": 0.07312965812161565,
+          "eager_ms": 0.048939038533717394,
+          "eager_over_compile": 0.49210533752253044,
+          "eager_over_triton": 0.6692091798423436,
+          "compile_over_triton": 1.359890106478889
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "triton",
+            "eager",
+            "compile"
+          ],
+          "triton_ms": 0.0865629781037569,
+          "eager_ms": 0.05009426036849618,
+          "compile_ms": 0.11041059857234359,
+          "eager_over_compile": 0.4537088016570552,
+          "eager_over_triton": 0.5787030606600866,
+          "compile_over_triton": 1.2754944549158445
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "triton",
+            "compile",
+            "eager"
+          ],
+          "triton_ms": 0.08913462050259113,
+          "compile_ms": 0.10570995975285769,
+          "eager_ms": 0.060021940153092146,
+          "eager_over_compile": 0.5677983445781187,
+          "eager_over_triton": 0.673385266181139,
+          "compile_over_triton": 1.1859584879231602
+        }
+      ]
+    },
+    {
+      "elements": 4096,
+      "dtype": "torch.float32",
+      "correctness": "passed",
+      "atol": 1e-06,
+      "rtol": 1e-05,
+      "errors": {
+        "eager": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 4.735077512307839e-07
+        },
+        "compile": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 4.735077512307839e-07
+        },
+        "triton": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 4.735077512307839e-07
+        }
+      },
+      "first_call_completion_ms": {
+        "eager": 0.8926680311560631,
+        "compile": 4035.6167500140145,
+        "triton": 930.2856200374663
+      },
+      "execution_activity": {
+        "eager": {
+          "device_events": [
+            "aclnnMul_MulAiCore_Mul",
+            "aclnnSilu_SiluAiCore_Swish"
+          ],
+          "device_event_count": 2
+        },
+        "compile": {
+          "device_events": [
+            "triton_poi_fused_mul_silu_0"
+          ],
+          "device_event_count": 1
+        },
+        "triton": {
+          "device_events": [
+            "fused_swiglu_kernel"
+          ],
+          "device_event_count": 1
+        }
+      },
+      "median_ms": {
+        "eager": 0.03721643937751651,
+        "compile": 0.0782888091634959,
+        "triton": 0.061866670148447156
+      },
+      "median_paired_ratios": {
+        "eager_over_compile": 0.47410057757124047,
+        "eager_over_triton": 0.6035696481467989,
+        "compile_over_triton": 1.2653976888263627
+      },
+      "pairs": [
+        {
+          "repeat": 1,
+          "order": [
+            "eager",
+            "compile",
+            "triton"
+          ],
+          "eager_ms": 0.03807533998042345,
+          "compile_ms": 0.08115391945466399,
+          "triton_ms": 0.06271016085520387,
+          "eager_over_compile": 0.4691743816722733,
+          "eager_over_triton": 0.6071638066491079,
+          "compile_over_triton": 1.294111167120848
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "eager",
+            "triton",
+            "compile"
+          ],
+          "eager_ms": 0.03738113911822438,
+          "triton_ms": 0.06201818119734526,
+          "compile_ms": 0.07965151919052005,
+          "eager_over_compile": 0.46930855177804826,
+          "eager_over_triton": 0.6027448466970604,
+          "compile_over_triton": 1.284325300302899
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "compile",
+            "eager",
+            "triton"
+          ],
+          "compile_ms": 0.07452907972037792,
+          "eager_ms": 0.03833093913272023,
+          "triton_ms": 0.06171256070956588,
+          "eager_over_compile": 0.5143084991325835,
+          "eager_over_triton": 0.6211205416206084,
+          "compile_over_triton": 1.2076808815490523
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "compile",
+            "triton",
+            "eager"
+          ],
+          "compile_ms": 0.07692609913647175,
+          "triton_ms": 0.061715159099549055,
+          "eager_ms": 0.03683933988213539,
+          "eager_over_compile": 0.4788926033644327,
+          "eager_over_triton": 0.5969253003579241,
+          "compile_over_triton": 1.2464700773498263
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "triton",
+            "eager",
+            "compile"
+          ],
+          "triton_ms": 0.060220141895115376,
+          "eager_ms": 0.03639671951532364,
+          "compile_ms": 0.08408915949985385,
+          "eager_over_compile": 0.4328348592351776,
+          "eager_over_triton": 0.6043944495965374,
+          "compile_over_triton": 1.3963626928397284
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "triton",
+            "compile",
+            "eager"
+          ],
+          "triton_ms": 0.06258475827053189,
+          "compile_ms": 0.07685229880735278,
+          "eager_ms": 0.037051739636808634,
+          "eager_over_compile": 0.48211621788551806,
+          "eager_over_triton": 0.5920249699878523,
+          "compile_over_triton": 1.2279714890828104
+        }
+      ]
+    },
+    {
+      "elements": 65536,
+      "dtype": "torch.float32",
+      "correctness": "passed",
+      "atol": 1e-06,
+      "rtol": 1e-05,
+      "errors": {
+        "eager": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 8.111078813044514e-07
+        },
+        "compile": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 8.111078813044514e-07
+        },
+        "triton": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 8.111078813044514e-07
+        }
+      },
+      "first_call_completion_ms": {
+        "eager": 0.665475963614881,
+        "compile": 6263.4639890166,
+        "triton": 0.4903740482404828
+      },
+      "execution_activity": {
+        "eager": {
+          "device_events": [
+            "aclnnMul_MulAiCore_Mul",
+            "aclnnSilu_SiluAiCore_Swish"
+          ],
+          "device_event_count": 2
+        },
+        "compile": {
+          "device_events": [
+            "triton_poi_fused_mul_silu_0"
+          ],
+          "device_event_count": 1
+        },
+        "triton": {
+          "device_events": [
+            "fused_swiglu_kernel"
+          ],
+          "device_event_count": 1
+        }
+      },
+      "median_ms": {
+        "eager": 0.03539711935445666,
+        "compile": 0.07959621958434582,
+        "triton": 0.0630645698402077
+      },
+      "median_paired_ratios": {
+        "eager_over_compile": 0.4492686906443284,
+        "eager_over_triton": 0.5622008015797073,
+        "compile_over_triton": 1.2606841159841573
+      },
+      "pairs": [
+        {
+          "repeat": 1,
+          "order": [
+            "eager",
+            "compile",
+            "triton"
+          ],
+          "eager_ms": 0.04552901955321431,
+          "compile_ms": 0.09315883973613381,
+          "triton_ms": 0.06844141986221075,
+          "eager_over_compile": 0.4887246307722618,
+          "eager_over_triton": 0.6652261108094385,
+          "compile_over_triton": 1.3611470937289911
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "eager",
+            "triton",
+            "compile"
+          ],
+          "eager_ms": 0.03461089916527271,
+          "triton_ms": 0.06823602132499218,
+          "compile_ms": 0.08229493862017989,
+          "eager_over_compile": 0.4205714196472543,
+          "eager_over_triton": 0.5072232890078557,
+          "compile_over_triton": 1.2060336611395963
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "compile",
+            "eager",
+            "triton"
+          ],
+          "compile_ms": 0.07692009909078479,
+          "eager_ms": 0.035619118716567755,
+          "triton_ms": 0.06340875988826156,
+          "eager_over_compile": 0.46306646946110097,
+          "eager_over_triton": 0.561738138063818,
+          "compile_over_triton": 1.2130831643188231
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "compile",
+            "triton",
+            "eager"
+          ],
+          "compile_ms": 0.07930872030556202,
+          "triton_ms": 0.061420160345733166,
+          "eager_ms": 0.03576251910999417,
+          "eager_over_compile": 0.45092795561708365,
+          "eager_over_triton": 0.5822602694080817,
+          "compile_over_triton": 1.2912489947784964
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "triton",
+            "eager",
+            "compile"
+          ],
+          "triton_ms": 0.06251537939533591,
+          "eager_ms": 0.03517511999234557,
+          "compile_ms": 0.07988371886312962,
+          "eager_over_compile": 0.44032902439874605,
+          "eager_over_triton": 0.5626634650955966,
+          "compile_over_triton": 1.2778250669800701
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "triton",
+            "compile",
+            "eager"
+          ],
+          "triton_ms": 0.06272037979215384,
+          "compile_ms": 0.07799549959599972,
+          "eager_ms": 0.03491152077913284,
+          "eager_over_compile": 0.4476094256715731,
+          "eager_over_triton": 0.5566216418781984,
+          "compile_over_triton": 1.2435431649882445
+        }
+      ]
+    },
+    {
+      "elements": 1048576,
+      "dtype": "torch.float32",
+      "correctness": "passed",
+      "atol": 1e-06,
+      "rtol": 1e-05,
+      "errors": {
+        "eager": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 1.0918508674961913e-06
+        },
+        "compile": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 1.0918508674961913e-06
+        },
+        "triton": {
+          "max_abs_error_vs_eager": 0.0,
+          "max_abs_error_vs_fp64": 1.0918508674961913e-06
+        }
+      },
+      "first_call_completion_ms": {
+        "eager": 0.8538380498066545,
+        "compile": 5291.401150985621,
+        "triton": 0.48289401456713676
+      },
+      "execution_activity": {
+        "eager": {
+          "device_events": [
+            "aclnnMul_MulAiCore_Mul",
+            "aclnnSilu_SiluAiCore_Swish"
+          ],
+          "device_event_count": 2
+        },
+        "compile": {
+          "device_events": [
+            "triton_poi_fused_mul_silu_0"
+          ],
+          "device_event_count": 1
+        },
+        "triton": {
+          "device_events": [
+            "fused_swiglu_kernel"
+          ],
+          "device_event_count": 1
+        }
+      },
+      "median_ms": {
+        "eager": 0.0650569808203727,
+        "compile": 0.17747460980899632,
+        "triton": 0.122252709697932
+      },
+      "median_paired_ratios": {
+        "eager_over_compile": 0.36030076981747394,
+        "eager_over_triton": 0.5415037659869344,
+        "compile_over_triton": 1.4435520662022425
+      },
+      "pairs": [
+        {
+          "repeat": 1,
+          "order": [
+            "eager",
+            "compile",
+            "triton"
+          ],
+          "eager_ms": 0.056544519029557705,
+          "compile_ms": 0.17951182089745998,
+          "triton_ms": 0.1271997601725161,
+          "eager_over_compile": 0.3149905045075379,
+          "eager_over_triton": 0.44453322044686694,
+          "compile_over_triton": 1.4112591144353972
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "eager",
+            "triton",
+            "compile"
+          ],
+          "eager_ms": 0.061890960205346346,
+          "triton_ms": 0.10742815909907222,
+          "compile_ms": 0.1574096200056374,
+          "eager_over_compile": 0.3931841027449898,
+          "eager_over_triton": 0.5761148727147913,
+          "compile_over_triton": 1.465254746294883
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "compile",
+            "eager",
+            "triton"
+          ],
+          "compile_ms": 0.13889445923268795,
+          "eager_ms": 0.06506138015538454,
+          "triton_ms": 0.11342641897499561,
+          "eager_over_compile": 0.4684231503172356,
+          "eager_over_triton": 0.5735998786114112,
+          "compile_over_triton": 1.2245335829856945
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "compile",
+            "triton",
+            "eager"
+          ],
+          "compile_ms": 0.19655538024380803,
+          "triton_ms": 0.13823924120515585,
+          "eager_ms": 0.06505258148536086,
+          "eager_over_compile": 0.3309631178992373,
+          "eager_over_triton": 0.4705797060099504,
+          "compile_over_triton": 1.421849386109602
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "triton",
+            "eager",
+            "compile"
+          ],
+          "triton_ms": 0.1173056592233479,
+          "eager_ms": 0.06648479960858822,
+          "compile_ms": 0.17543739872053266,
+          "eager_over_compile": 0.37896594508048326,
+          "eager_over_triton": 0.5667654915267331,
+          "compile_over_triton": 1.4955578433475485
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "triton",
+            "compile",
+            "eager"
+          ],
+          "triton_ms": 0.13031058013439178,
+          "compile_ms": 0.19691098015755415,
+          "eager_ms": 0.06727179978042841,
+          "eager_over_compile": 0.3416355945544647,
+          "eager_over_triton": 0.5162420404471357,
+          "compile_over_triton": 1.5110897361862414
+        }
+      ]
+    }
+  ],
+  "run_label": "A3_20261116",
+  "source_notebook": "03_Triton_Kernels/03_Triton_Fused_SwiGLU_NPU.ipynb"
+}
