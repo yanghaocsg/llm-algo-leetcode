@@ -1,6 +1,6 @@
 # 模型架构与训练（Model Architecture and Training）
 
-> 专题类型：跨专题组合学习路线　学习目标：解释结构选择怎样改变前向计算、反向依赖与训练状态，并在正确更新的前提下比较质量和资源代价。
+> 专题类型：主学习路线　学习目标：解释结构选择怎样改变前向计算、反向依赖与训练状态，并在正确更新的前提下比较质量和资源代价。
 
 注意力头共享、访问窗口、稀疏专家和递推记忆改变模型处理信息的方式，也改变训练时需要保存和计算的内容。从同一个解码器块出发，先追踪结构与历史表示，再沿损失、梯度和参数更新分析训练过程，最后比较重算与搬运是否适合当前负载。
 
@@ -8,7 +8,7 @@
 
 从 Task0 建立共同基线，先看词元如何经过解码器形成预测和损失，再分别研究历史读取、前馈计算与记忆表示。需要的前置是张量形状、矩阵乘法和基本 PyTorch 操作，可用[Part 02 · 00 PyTorch 热身](../../02_PyTorch_Algorithms/00_PyTorch_Warmup.ipynb)回补。
 
-首次学习可沿 Task0 → Task1 的注意力与位置基础 → Task2 的稠密前馈 → Task4–6，先完成一个普通 Transformer 的训练理解。潜在注意力、长上下文、混合专家（MoE）和状态空间模型（SSM）按目标深入；Task3 的递推记忆不是开始反向传播的前置。连续衔接见[从模型结构到一次训练更新](./walkthrough.md)；希望完整研究某一侧时，也可独立使用[模型架构路线](../llm_architecture_evolution/intro.md)或[训练机制路线](../backpropagation_training_mechanism/intro.md)。
+首次学习可沿 Task0 → Task1 的注意力与位置基础 → Task2 的稠密前馈 → Task4–6，先完成一个普通 Transformer 的训练理解。潜在注意力、长上下文、混合专家（MoE）和状态空间模型（SSM）按目标深入；Task3 的递推记忆不是开始反向传播的前置。连续衔接见[从模型结构到一次训练更新](./walkthrough.md)；希望完整研究某一侧时，也可独立阅读[模型架构基础专题](../llm_architecture_evolution/intro.md)或[反向传播与训练机制基础专题](../backpropagation_training_mechanism/intro.md)。
 
 | Task / 主题 | 本阶段要回答的问题 | 学习入口与验证出口 | 学习顺序 | 主要正文入口 |
 |:---|:---|:---|:---|:---|
@@ -39,7 +39,7 @@ Task0 的[输入表示](../llm_architecture_evolution/02_tokenization_embedding.
 | 需要用示范、偏好或奖励改变模型行为 | [后训练优化](../post_training_optimization/intro.md) | 数据、训练目标与独立任务评测 |
 | 模型结构已确定，需要降低生成和服务成本 | [推理优化](../inference_optimization/intro.md) | 请求时间、缓存与调度条件 |
 | 已定位局部计算，需要改编译或内核实现 | [算子优化](../operator_optimization/intro.md) | 实际执行路径、数值和完整调用成本 |
-| 需要定位整步热点、峰值或多设备通信 | [性能分析](../performance_analysis/intro.md)／[通信与并行](../communication_parallelism/intro.md) | 时间线、状态重叠和暴露通信 |
+| 需要定位整步热点、峰值或多设备通信 | [性能分析](../performance_optimization/methods/intro.md)／[通信与并行](../communication_parallelism/intro.md) | 时间线、状态重叠和暴露通信 |
 
 概念回查分别使用[架构术语表](../llm_architecture_evolution/glossary.md)与[训练术语表](../backpropagation_training_mechanism/glossary.md)。线性注意力与状态空间模型（SSM）都可以涉及递推状态，但更新公式与表示能力不同，不能仅因都使用固定大小状态就视为同一种结构。
 

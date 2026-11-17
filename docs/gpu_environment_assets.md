@@ -1,7 +1,5 @@
 # 教程模型、执行栈与环境资产索引
 
-> 统一审阅入口见[教程资产总登记与审阅台账](./asset_registry.md)。
-
 本页帮助学习者选择环境 Profile、确认环境隔离关系，并找到模型、执行栈和实验快照的维护入口。它不复制安装命令、逐包版本、Notebook 配置或实验结果；这些信息分别由 Profile 注册表、专题 Quickstart、专题实验资产表和结果 JSON 维护。
 
 ## 信息所有权
@@ -13,7 +11,7 @@
 | 模型、数据、工作负载、结果路径和当前证据状态 | 对应专题 `experiment_assets.md` | 说明资产归属 |
 | 本次软件、驱动、硬件和运行参数 | 结果 JSON 的 runtime snapshot | 说明必须记录的字段组 |
 | 项目公共结果字段和证据等级 | [Part 02 结果资产与证据契约](./part02_result_assets.md) | 不重复字段定义 |
-| 托管镜像与文档交付状态 | [教程资产总登记与审阅台账](./asset_registry.md) | 只说明运行入口 |
+| 托管环境与 CNB 配置 | [运行指南](./guide.md)与根目录 `cnb/` 配置 | 提供运行入口 |
 
 ## 环境分层
 
@@ -52,16 +50,16 @@
 |:---|:---|:---|
 | <a id="train-cuda-mechanism"></a>`TRAIN-CUDA-MECHANISM` | 单卡；梯度累积、AMP、重算与卸载 | [训练机制 Quickstart](../topic_discussion/backpropagation_training_mechanism/quickstart.md#train-cuda-mechanism-quickstart) · [实验资产](../topic_discussion/backpropagation_training_mechanism/experiment_assets.md) |
 | <a id="arch-cuda-mechanism"></a>`ARCH-CUDA-MECHANISM` | 单卡；Block、Attention、递推状态、MLA 与混合记忆 | [架构 Quickstart](../topic_discussion/llm_architecture_evolution/quickstart.md#arch-cuda-mechanism-quickstart) · [实验资产](../topic_discussion/llm_architecture_evolution/experiment_assets.md) |
-| <a id="perf-cuda-mechanism"></a>`PERF-CUDA-MECHANISM` | 单卡；性能分析机制实验及 Part 05·03、05 综合项目 | [性能分析 Quickstart](../topic_discussion/performance_analysis/quickstart.md#perf-cuda-mechanism-quickstart) · [实验资产](../topic_discussion/performance_analysis/experiment_assets.md) |
+| <a id="perf-cuda-mechanism"></a>`PERF-CUDA-MECHANISM` | 单卡；性能分析机制实验及 Part 05·03、05 综合项目 | [性能优化 GPU Quickstart](./topic_discussion/performance_optimization/gpu_quickstart.md#perf-cuda-mechanism-quickstart) · [测量与诊断实验记录](./topic_discussion/performance_optimization/measurement_assets.md) |
 | <a id="inf-cuda-mechanism"></a>`INF-CUDA-MECHANISM` | 单卡；真实模型迭代成本、显存与局部延迟 | [推理优化 Quickstart](../topic_discussion/inference_optimization/quickstart.md#inf-cuda-mechanism-quickstart) · [实验资产](../topic_discussion/inference_optimization/experiment_assets.md) |
 | <a id="par-cuda-mechanism"></a>`PAR-CUDA-MECHANISM` | 至少双卡；collective、切分、同步和局部扩展行为 | [通信与并行 Quickstart](../topic_discussion/communication_parallelism/quickstart.md#par-cuda-mechanism-quickstart) · [实验资产](../topic_discussion/communication_parallelism/experiment_assets.md) |
 | <a id="q-cuda-mechanism"></a>`Q-CUDA-MECHANISM` | 单卡；量化机制对照及 Part 05·04 量化产物生成 | [量化 Quickstart](../topic_discussion/quantization_compression/quickstart.md#q-cuda-mechanism-quickstart) · [实验资产](../topic_discussion/quantization_compression/experiment_assets.md) |
 | <a id="q-qlora"></a>`Q-QLORA` | 单卡；BF16 LoRA 与 NF4 QLoRA 配对训练 | [量化 Quickstart](../topic_discussion/quantization_compression/quickstart.md#q-qlora-quickstart) · [实验资产](../topic_discussion/quantization_compression/experiment_assets.md) |
-| <a id="pt-sft-cuda"></a>`PT-SFT-CUDA` | 单卡；SFT、LoRA 更新、验证与训练产物 | [后训练 Quickstart](../topic_discussion/post_training_optimization/quickstart.md#pt-sft-cuda-quickstart) · [实验资产](../topic_discussion/post_training_optimization/experiment_assets.md) |
+| <a id="pt-sft-cuda"></a>`PT-SFT-CUDA` | 单卡；SFT、LoRA 更新及 Part 05 · 02 MiniMind 的独立 SFT、LoRA、DPO 与评测 | [后训练 Quickstart](../topic_discussion/post_training_optimization/quickstart.md#pt-sft-cuda-quickstart) · [实验资产](../topic_discussion/post_training_optimization/experiment_assets.md) |
 | <a id="pt-rl-cuda"></a>`PT-RL-CUDA` | 单卡；奖励模型、奖励信号、DPO 与 GRPO 机制实验 | [后训练 Quickstart](../topic_discussion/post_training_optimization/quickstart.md#pt-rl-cuda-quickstart) · [实验资产](../topic_discussion/post_training_optimization/experiment_assets.md) |
 | <a id="pt-verl-cuda"></a>`PT-VERL-CUDA` | 单卡；verl 轨迹准入、阶段耗时与缓存驻留机制实验 | [后训练 Quickstart](../topic_discussion/post_training_optimization/quickstart.md#pt-verl-cuda-quickstart) · [实验资产](../topic_discussion/post_training_optimization/experiment_assets.md) |
 | <a id="pt-distill-cuda"></a>`PT-DISTILL-CUDA` | 单卡；学生基线、固定轨迹 KD 与 TRL on-policy distillation | [后训练 Quickstart](../topic_discussion/post_training_optimization/quickstart.md#pt-distill-cuda-quickstart) · [实验资产](../topic_discussion/post_training_optimization/experiment_assets.md) |
-| `PT-DELIVERY-CUDA` | 单卡；后训练候选冻结复测与综合交付 | [后训练 Quickstart](../topic_discussion/post_training_optimization/quickstart.md#pt-delivery-cuda-quickstart) · [实验资产](../topic_discussion/post_training_optimization/experiment_assets.md) |
+| `PT-DELIVERY-CUDA` | 单卡；历史候选冻结复测方案的兼容环境；当前 MiniMind 项目使用 `PT-SFT-CUDA` | [后训练 Quickstart](../topic_discussion/post_training_optimization/quickstart.md#pt-delivery-cuda-quickstart) · [实验资产](../topic_discussion/post_training_optimization/experiment_assets.md) |
 
 ### 独立推理后端环境
 

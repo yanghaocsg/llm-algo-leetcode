@@ -1,6 +1,6 @@
 # 大模型架构演进（LLM Architecture Evolution）
 
-> 专题类型：主学习路线　学习目标：判断结构选择怎样改变模型能力、状态表示、资源成本与适用条件
+> 专题类型：基础支撑专题　学习目标：判断结构选择怎样改变模型能力、状态表示、资源成本与适用条件。
 
 本专题从仅解码器（Decoder-only）基线出发，依次解释输入表示、Transformer 块、注意力与 KV 表示、归一化与前馈网络、位置与访问范围、MoE 稀疏容量，以及线性注意力、SSM 和混合记忆。
 
@@ -37,7 +37,7 @@
 
 ### 跨专题入口
 
-本专题解释结构机制；缓存与调度进入[推理优化](../inference_optimization/intro.md)，训练更新与模型适配分别进入[反向传播与训练机制](../backpropagation_training_mechanism/intro.md)和[后训练优化](../post_training_optimization/intro.md)，低精度执行与跨卡扩展分别进入[量化与压缩](../quantization_compression/intro.md)和[通信与并行](../communication_parallelism/intro.md)，时间、容量与成本由[性能分析](../performance_analysis/intro.md)和[性能优化](../performance_optimization/intro.md)继续验证。
+本专题解释结构机制；缓存与调度进入[推理优化](../inference_optimization/intro.md)，训练更新与模型适配分别进入[反向传播与训练机制](../backpropagation_training_mechanism/intro.md)和[后训练优化](../post_training_optimization/intro.md)，低精度执行与跨卡扩展分别进入[量化与压缩](../quantization_compression/intro.md)和[通信与并行](../communication_parallelism/intro.md)，时间、容量与成本由[性能分析](../performance_optimization/methods/intro.md)和[性能优化](../performance_optimization/intro.md)继续验证。
 
 ## 实验与项目出口
 
