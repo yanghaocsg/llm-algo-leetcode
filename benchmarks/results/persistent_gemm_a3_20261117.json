@@ -1,0 +1,687 @@
+{
+  "schema_version": "persistent-gemm-assignment/v1",
+  "measured_at_utc": "2026-11-17T07:33:58.904787+00:00",
+  "status": "measured",
+  "evidence_scope": "local_fixed_binary_tile_assignment",
+  "device": "Ascend910_9382",
+  "sm_count": 48,
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post7",
+  "triton": "3.6.0",
+  "dtype": "torch.float16",
+  "tile_mnk": [
+    32,
+    64,
+    32
+  ],
+  "launches_per_graph": 50,
+  "warmup": 5,
+  "repeats": 6,
+  "timing": "cuda_event_graph_replay_window_per_kernel",
+  "timed": "same binary, fixed-address launches; capture, compilation, allocation, input update and assignment recording excluded",
+  "library_reference": "PyTorch matmul is a numerical reference, not the timed baseline",
+  "rows": [
+    {
+      "shape_mnk": [
+        128,
+        128,
+        128
+      ],
+      "variant": "ordinary",
+      "total_tiles": 8,
+      "programs": 8,
+      "requested_workers": 8,
+      "same_grid_as_ordinary": true,
+      "median_ms": 0.007355799973011017,
+      "median_paired_speedup_vs_ordinary": 1.0,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 1,
+          "ms": 0.02219599962234497
+        },
+        {
+          "repeat": 2,
+          "order_position": 3,
+          "ms": 0.010238800048828125
+        },
+        {
+          "repeat": 3,
+          "order_position": 1,
+          "ms": 0.007395600080490112
+        },
+        {
+          "repeat": 4,
+          "order_position": 3,
+          "ms": 0.007315999865531921
+        },
+        {
+          "repeat": 5,
+          "order_position": 1,
+          "ms": 0.007279199957847596
+        },
+        {
+          "repeat": 6,
+          "order_position": 3,
+          "ms": 0.007279199957847596
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        128,
+        128,
+        128
+      ],
+      "variant": "persistent_1x_sm",
+      "total_tiles": 8,
+      "programs": 8,
+      "requested_workers": 48,
+      "same_grid_as_ordinary": true,
+      "median_ms": 0.00729200005531311,
+      "median_paired_speedup_vs_ordinary": 1.0048464666200652,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 2,
+          "ms": 0.01910680055618286
+        },
+        {
+          "repeat": 2,
+          "order_position": 2,
+          "ms": 0.01063040018081665
+        },
+        {
+          "repeat": 3,
+          "order_position": 2,
+          "ms": 0.007256399989128113
+        },
+        {
+          "repeat": 4,
+          "order_position": 2,
+          "ms": 0.00726360023021698
+        },
+        {
+          "repeat": 5,
+          "order_position": 2,
+          "ms": 0.007261199951171875
+        },
+        {
+          "repeat": 6,
+          "order_position": 2,
+          "ms": 0.00732039988040924
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        128,
+        128,
+        128
+      ],
+      "variant": "persistent_2x_sm",
+      "total_tiles": 8,
+      "programs": 8,
+      "requested_workers": 96,
+      "same_grid_as_ordinary": true,
+      "median_ms": 0.007415000200271606,
+      "median_paired_speedup_vs_ordinary": 0.9897441677002854,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 3,
+          "ms": 0.018208400011062623
+        },
+        {
+          "repeat": 2,
+          "order_position": 1,
+          "ms": 0.012640800476074219
+        },
+        {
+          "repeat": 3,
+          "order_position": 3,
+          "ms": 0.00737559974193573
+        },
+        {
+          "repeat": 4,
+          "order_position": 1,
+          "ms": 0.007439600229263306
+        },
+        {
+          "repeat": 5,
+          "order_position": 3,
+          "ms": 0.007319200038909912
+        },
+        {
+          "repeat": 6,
+          "order_position": 1,
+          "ms": 0.007390400171279907
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        512,
+        512,
+        256
+      ],
+      "variant": "ordinary",
+      "total_tiles": 128,
+      "programs": 128,
+      "requested_workers": 128,
+      "same_grid_as_ordinary": true,
+      "median_ms": 0.022977000474929808,
+      "median_paired_speedup_vs_ordinary": 1.0,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 1,
+          "ms": 0.032909998893737795
+        },
+        {
+          "repeat": 2,
+          "order_position": 3,
+          "ms": 0.022964000701904297
+        },
+        {
+          "repeat": 3,
+          "order_position": 1,
+          "ms": 0.022903199195861815
+        },
+        {
+          "repeat": 4,
+          "order_position": 3,
+          "ms": 0.02295919895172119
+        },
+        {
+          "repeat": 5,
+          "order_position": 1,
+          "ms": 0.022990000247955323
+        },
+        {
+          "repeat": 6,
+          "order_position": 3,
+          "ms": 0.02301919937133789
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        512,
+        512,
+        256
+      ],
+      "variant": "persistent_1x_sm",
+      "total_tiles": 128,
+      "programs": 48,
+      "requested_workers": 48,
+      "same_grid_as_ordinary": false,
+      "median_ms": 0.022925800085067748,
+      "median_paired_speedup_vs_ordinary": 1.003946815295806,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 2,
+          "ms": 0.03240839958190918
+        },
+        {
+          "repeat": 2,
+          "order_position": 2,
+          "ms": 0.022912399768829347
+        },
+        {
+          "repeat": 3,
+          "order_position": 2,
+          "ms": 0.02293920040130615
+        },
+        {
+          "repeat": 4,
+          "order_position": 2,
+          "ms": 0.022830400466918945
+        },
+        {
+          "repeat": 5,
+          "order_position": 2,
+          "ms": 0.023108000755310058
+        },
+        {
+          "repeat": 6,
+          "order_position": 2,
+          "ms": 0.022879600524902344
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        512,
+        512,
+        256
+      ],
+      "variant": "persistent_2x_sm",
+      "total_tiles": 128,
+      "programs": 96,
+      "requested_workers": 96,
+      "same_grid_as_ordinary": false,
+      "median_ms": 0.022942999601364138,
+      "median_paired_speedup_vs_ordinary": 1.0025411096893477,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 3,
+          "ms": 0.03240040063858032
+        },
+        {
+          "repeat": 2,
+          "order_position": 1,
+          "ms": 0.022945199012756348
+        },
+        {
+          "repeat": 3,
+          "order_position": 3,
+          "ms": 0.02284519910812378
+        },
+        {
+          "repeat": 4,
+          "order_position": 1,
+          "ms": 0.022779200077056885
+        },
+        {
+          "repeat": 5,
+          "order_position": 3,
+          "ms": 0.022940800189971924
+        },
+        {
+          "repeat": 6,
+          "order_position": 1,
+          "ms": 0.022960801124572754
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        1024,
+        1536,
+        512
+      ],
+      "variant": "ordinary",
+      "total_tiles": 768,
+      "programs": 768,
+      "requested_workers": 768,
+      "same_grid_as_ordinary": true,
+      "median_ms": 0.13381340026855468,
+      "median_paired_speedup_vs_ordinary": 1.0,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 1,
+          "ms": 0.1444204044342041
+        },
+        {
+          "repeat": 2,
+          "order_position": 3,
+          "ms": 0.13366880416870117
+        },
+        {
+          "repeat": 3,
+          "order_position": 1,
+          "ms": 0.1339091968536377
+        },
+        {
+          "repeat": 4,
+          "order_position": 3,
+          "ms": 0.133682804107666
+        },
+        {
+          "repeat": 5,
+          "order_position": 1,
+          "ms": 0.13383959770202636
+        },
+        {
+          "repeat": 6,
+          "order_position": 3,
+          "ms": 0.133787202835083
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        1024,
+        1536,
+        512
+      ],
+      "variant": "persistent_1x_sm",
+      "total_tiles": 768,
+      "programs": 48,
+      "requested_workers": 48,
+      "same_grid_as_ordinary": false,
+      "median_ms": 0.14025660037994386,
+      "median_paired_speedup_vs_ordinary": 0.9541833194524896,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 2,
+          "ms": 0.15131400108337403
+        },
+        {
+          "repeat": 2,
+          "order_position": 2,
+          "ms": 0.14020159721374512
+        },
+        {
+          "repeat": 3,
+          "order_position": 2,
+          "ms": 0.14026399612426757
+        },
+        {
+          "repeat": 4,
+          "order_position": 2,
+          "ms": 0.14026960372924804
+        },
+        {
+          "repeat": 5,
+          "order_position": 2,
+          "ms": 0.14010199546813965
+        },
+        {
+          "repeat": 6,
+          "order_position": 2,
+          "ms": 0.14024920463562013
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        1024,
+        1536,
+        512
+      ],
+      "variant": "persistent_2x_sm",
+      "total_tiles": 768,
+      "programs": 96,
+      "requested_workers": 96,
+      "same_grid_as_ordinary": false,
+      "median_ms": 0.132852201461792,
+      "median_paired_speedup_vs_ordinary": 1.0067906517165413,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 3,
+          "ms": 0.1452068042755127
+        },
+        {
+          "repeat": 2,
+          "order_position": 1,
+          "ms": 0.13318479537963868
+        },
+        {
+          "repeat": 3,
+          "order_position": 3,
+          "ms": 0.13224320411682128
+        },
+        {
+          "repeat": 4,
+          "order_position": 1,
+          "ms": 0.1331387996673584
+        },
+        {
+          "repeat": 5,
+          "order_position": 3,
+          "ms": 0.13256560325622557
+        },
+        {
+          "repeat": 6,
+          "order_position": 1,
+          "ms": 0.13252880096435546
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        1536,
+        1024,
+        768
+      ],
+      "variant": "ordinary",
+      "total_tiles": 768,
+      "programs": 768,
+      "requested_workers": 768,
+      "same_grid_as_ordinary": true,
+      "median_ms": 0.15625840187072754,
+      "median_paired_speedup_vs_ordinary": 1.0,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 1,
+          "ms": 0.1680388069152832
+        },
+        {
+          "repeat": 2,
+          "order_position": 3,
+          "ms": 0.15643320083618165
+        },
+        {
+          "repeat": 3,
+          "order_position": 1,
+          "ms": 0.15593720436096192
+        },
+        {
+          "repeat": 4,
+          "order_position": 3,
+          "ms": 0.15608360290527343
+        },
+        {
+          "repeat": 5,
+          "order_position": 1,
+          "ms": 0.15571920394897462
+        },
+        {
+          "repeat": 6,
+          "order_position": 3,
+          "ms": 0.15656880378723145
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        1536,
+        1024,
+        768
+      ],
+      "variant": "persistent_1x_sm",
+      "total_tiles": 768,
+      "programs": 48,
+      "requested_workers": 48,
+      "same_grid_as_ordinary": false,
+      "median_ms": 0.15702539920806885,
+      "median_paired_speedup_vs_ordinary": 0.9943862990672709,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 2,
+          "ms": 0.2280575942993164
+        },
+        {
+          "repeat": 2,
+          "order_position": 2,
+          "ms": 0.15702919960021972
+        },
+        {
+          "repeat": 3,
+          "order_position": 2,
+          "ms": 0.15710479736328126
+        },
+        {
+          "repeat": 4,
+          "order_position": 2,
+          "ms": 0.15660280227661133
+        },
+        {
+          "repeat": 5,
+          "order_position": 2,
+          "ms": 0.15702159881591796
+        },
+        {
+          "repeat": 6,
+          "order_position": 2,
+          "ms": 0.15657480239868163
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    },
+    {
+      "shape_mnk": [
+        1536,
+        1024,
+        768
+      ],
+      "variant": "persistent_2x_sm",
+      "total_tiles": 768,
+      "programs": 96,
+      "requested_workers": 96,
+      "same_grid_as_ordinary": false,
+      "median_ms": 0.15597239971160887,
+      "median_paired_speedup_vs_ordinary": 1.0006303115949744,
+      "samples": [
+        {
+          "repeat": 1,
+          "order_position": 3,
+          "ms": 0.16801599502563477
+        },
+        {
+          "repeat": 2,
+          "order_position": 1,
+          "ms": 0.15598999977111816
+        },
+        {
+          "repeat": 3,
+          "order_position": 3,
+          "ms": 0.15576199531555177
+        },
+        {
+          "repeat": 4,
+          "order_position": 1,
+          "ms": 0.15660799980163576
+        },
+        {
+          "repeat": 5,
+          "order_position": 3,
+          "ms": 0.15588879585266113
+        },
+        {
+          "repeat": 6,
+          "order_position": 1,
+          "ms": 0.1559547996520996
+        }
+      ],
+      "identity": {
+        "compile_hash": "f5f2a04fe82fc33664e7849243936aabbb75ce52fa4f7eb70925e4bf55a05b6f",
+        "binary_sha256": "676c4f6c97f453f5fa41699af149e30594d656d15a732f12a85bbdc103c1d40a",
+        "source_sha256": "96988f6e6b74c07e1d6382a560e1d8e39224a83f885d5059de4a63b75ccbd3a3",
+        "registers_per_thread": 0,
+        "shared_bytes_per_block": 1,
+        "num_warps": 4,
+        "num_stages": 2
+      }
+    }
+  ],
+  "run_label": "A3",
+  "source_notebook": "03_Triton_Kernels/06_Triton_Persistent_GEMM_and_Tile_Scheduling.ipynb"
+}
