@@ -267,7 +267,108 @@ def score_candidate_tree(nodes: Sequence[Dict[str, float]]) -> Tuple[List[float]
 
 - 节点分数包含从根到当前节点的完整路径。候选排序只确定验证顺序，不能替代目标模型的接受判定。
 
-真实草稿器还需要与目标模型配对的权重、多层特征抽取和后端支持。固定 verifier、输入、候选预算与质量口径的 GPU 对照由 68 承接。
+CPU 测试只验证表示融合、候选树累计分数和连续接受边界。真实收益还需要配对的目标模型与 EAGLE 草稿器、不可变模型版本和后端执行路径。
+
+### Step 5：GPU 实验方案——EAGLE 配对草稿器
+
+| 学习问题 | CPU 已确认 | GPU 要确认与后续使用 |
+| --- | --- | --- |
+| 隐藏表示草稿器和候选树能否提高有效推进量 | 表示融合、候选树累计分数和连续验证 | 目标模型与草稿器配对是否成立，以及接受长度、草稿成本、TPOT、显存和输出质量 |
+
+#### 5.1 环境与固定工作负载
+
+首次运行先完成[推理优化实验 Quickstart](../topic_discussion/inference_optimization/quickstart.md#inf-cuda-mechanism-quickstart)。EAGLE 必须使用明确配对的目标模型与草稿器；名称相近不能证明隐藏表示、分词器和权重版本兼容。
+
+| 配置档 | 模型与候选 | 显存与执行条件 | 使用方式 |
+| --- | --- | --- | --- |
+| 单卡 12 GB 条件配置 | 与 `Qwen/Qwen3-8B` 同源的量化 verifier + `RedHatAI/Qwen3-8B-speculator.eagle3` | batch 1、上下文 1024–2048、候选 2–3；必须先验证量化 verifier 与 speculator 的隐藏层和分词契约 | 属于可尝试配置，不承诺落入 12 GB；BF16 8B 配对不是本档默认方案 |
+| 单卡 24 GB 推荐配置 | 同源量化 Qwen3-8B verifier + 配对 EAGLE-3 speculator | batch 1、上下文 1024–2048、候选 2–4；为 KV Cache 与工作区保留余量 | 先跑 target-only，再运行 EAGLE；通过后逐步扩大上下文或候选树预算 |
+| 扩展配置 | BF16 verifier、长上下文、高并发或更大配对模型 | 预检峰值显存；单卡不足时使用更大显存或多卡 | 独立登记模型、量化格式、树宽深和 backend，不与量化结果混合 |
+
+当前 12 GB 本机没有完成官方 BF16 8B 配对验证，因此默认执行条件检查。具备 24 GB 显存或已验证同源量化目标模型时，可以填写配对模型与后端进入真实实验；仅目标模型路径、草稿器加载或隐藏层契约任一失败时，应保存失败阶段，不使用随机张量替代。
+
+| 配置层 | 本实验固定口径 | 修改规则 |
+| --- | --- | --- |
+| 配对资产 | 目标模型 + EAGLE 草稿器 + 不可变版本 | 两者必须是公开声明或自行训练确认的配对组合 |
+| 候选树 | 固定树宽、树深和验证预算 | 修改树结构后递增 workload version |
+| 对照 | 仅目标模型 → EAGLE | 固定输入、数据类型、生成长度、量化格式和执行后端 |
+| 结果 | 接受长度、草稿/验证成本、TPOT、显存、质量 | 正式复测使用唯一 `RUN_LABEL` |
+
+官方可直接服务的 EAGLE-3 配对和长格式配置见 [Speculators 服务教程](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/tutorials/serve_vllm/)。
+
+
+```python
+RUN_MODE = 'asset_check'  # 默认值 asset_check；资产齐全后执行真实 EAGLE benchmark。
+RUN_LABEL = 'rtx5070ti_eagle_asset_v1'  # 默认资产审计标签；不表示已完成 GPU benchmark。
+PROFILE_ID = 'INF-CUDA-MECHANISM'  # 默认单卡推理机制环境。
+SEMANTIC_ID = 'INF-EAGLE'  # 稳定机制身份。
+WORKLOAD_ID = 'inf-eagle-feature-drafter'  # 稳定工作负载身份。
+WORKLOAD_VERSION = 'v1'  # 配对模型或树预算变化时递增。
+RECOMMENDED_TARGET_MODEL_ID = 'Qwen/Qwen3-8B'  # 官方 Speculators 示例 verifier。
+RECOMMENDED_EAGLE_MODEL_ID = 'RedHatAI/Qwen3-8B-speculator.eagle3'  # 官方示例配对权重。
+TARGET_MODEL_ID = ''  # 默认空；确认运行硬件后再填写配对目标模型。
+TARGET_MODEL_REVISION = ''  # 默认空；填写目标模型不可变 revision。
+EAGLE_MODEL_ID = ''  # 默认空；填写配对 EAGLE speculator。
+EAGLE_MODEL_REVISION = ''  # 默认空；填写 speculator 不可变 revision。
+EAGLE_BACKEND = ''  # 默认空；推荐使用 vLLM + Speculators 的真实 EAGLE-3 路径。
+LOCAL_GPU_MEMORY_GB = 11.48  # 当前参考设备显存；不足以承载推荐 BF16 8B 配对。
+TREE_WIDTH = 4  # 默认候选树宽 4；修改后递增 workload version。
+TREE_DEPTH = 4  # 默认候选树深 4；修改后递增 workload version。
+OUTPUT_RELATIVE_PATH = f'02_PyTorch_Algorithms/benchmarks/results/inf_eagle_{RUN_LABEL}.json'
+
+```
+
+#### 5.2 检查实验条件并保存 JSON
+
+本单元检查目标模型、EAGLE 草稿器和执行后端是否齐全。条件未满足时保存结构化失败记录，不生成性能结论。
+
+
+```python
+import importlib
+from tools.project_runtime import resolve_project_root
+import tools.speculative_mechanism_runtime as speculative_runtime
+speculative_runtime = importlib.reload(speculative_runtime)
+RESULT_PATH = resolve_project_root() / OUTPUT_RELATIVE_PATH
+GPU_REPORT = speculative_runtime.build_asset_gate_result(
+    semantic_id=SEMANTIC_ID, profile_id=PROFILE_ID, run_mode=RUN_MODE, run_label=RUN_LABEL,
+    workload_id=WORKLOAD_ID, workload_version=WORKLOAD_VERSION, mechanism='eagle',
+    required_assets=(
+        {'name': 'target_model_id', 'value': TARGET_MODEL_ID},
+        {'name': 'target_model_revision', 'value': TARGET_MODEL_REVISION},
+        {'name': 'eagle_model_id', 'value': EAGLE_MODEL_ID},
+        {'name': 'eagle_model_revision', 'value': EAGLE_MODEL_REVISION},
+        {'name': 'eagle_backend', 'value': EAGLE_BACKEND},
+    ), required_packages=('vllm', 'speculators'), output_path=RESULT_PATH,
+    not_ready_decision='defer_to_multi_gpu',
+    not_ready_message='推荐 EAGLE 配对与后端尚未满足；当前 12 GB 单卡不执行替代性探针。',
+)
+GPU_REPORT
+
+```
+
+#### 5.3 读取结果
+
+读取条件检查结果。只有目标模型与草稿器配对、后端路径和显存条件均通过，并完成仅目标模型与 EAGLE 的配对运行后，才形成性能证据。
+
+
+```python
+from tools.speculative_mechanism_runtime import read_mechanism_result
+report = read_mechanism_result(RESULT_PATH)
+{key: report.get(key) for key in ('semantic_id', 'workload', 'asset_gate', 'failure', 'evidence_level', 'decision')}
+
+```
+
+#### 5.4 验证状态与后续判断
+
+当前结果只证明实验条件尚未满足，不表示 EAGLE 无效。推荐的 Qwen3-8B/EAGLE-3 BF16 配对超出当前 12 GB 单卡的已验证范围；可在单卡 24 GB、更多显存，或经过验证的量化目标模型路径上继续比较接受长度、候选树成本、TPOT、显存与输出质量。
+
+| 观察项 | 读取字段 | 当前结果 | 解释与动作 |
+| --- | --- | --- | --- |
+| 配对资产 | 模型 ID 与不可变版本 | 推荐 Qwen3-8B + RedHatAI EAGLE-3 | 获得配对资产后重新检查 |
+| 环境与后端 | `vllm`、`speculators`、GPU 显存 | 当前 12 GB 单卡未验证 BF16 推荐组合 | 使用 24 GB 配置或验证量化路径 |
+| 候选树 | 树宽、树深、验证预算 | 默认 4 × 4 | 固定后才能横向比较 |
+| 性能证据 | 接受长度、草稿/验证成本、TPOT、显存 | 未测量 | 完成真实配对运行后填写 |
+| 当前决策 | `decision` | `defer_to_multi_gpu` | 保留方案，等待满足执行条件 |
 
 ## 相关阅读
 

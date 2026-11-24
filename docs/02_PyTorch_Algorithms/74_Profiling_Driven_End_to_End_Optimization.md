@@ -64,15 +64,15 @@
 
 ![74 激活显存专项的结论边界](../public/02_PyTorch_Algorithms/74_experiment_decision_flow.svg)
 
-### Step 4：隔离证据范围并生成项目结论
+### Step 4：核对证据范围并形成项目结论
 
-下面给出一份精简的收口报告。请核对证据范围与配置是否匹配，分别保留各范围的结论，再根据完整训练范围形成项目总决策。
+根据精简报告核对实验范围配置，并以完整训练范围形成项目结论；专项结论作为各自范围的补充。
 
 | 任务与目的 | 已知条件 | 完成标准 | 测试验证 |
 |:---|:---|:---|:---|
-| TODO 1：检查范围配置 | 必需范围及其优化器、长度等配置 | 报告缺范围或字段不匹配时返回具体问题 | 覆盖正确配置、错配配置和缺失范围 |
-| TODO 2：汇总范围结论 | 各范围的 decision、evidence status 与 limitations | 三类字段均保留，且不改写专项状态 | 验证 `blocked`、专项结论和限制均未丢失 |
-| TODO 3：生成项目总决策 | 完整训练范围结论与各范围摘要 | 从完整训练结论取总决策；缺少该范围时拒绝生成 | 顶层字段与完整训练结论冲突时仍以范围结论为准 |
+| TODO 1：核对范围配置 | 报告范围和预期配置字段 | 字段值一致才通过；缺失范围由骨架报告 | 正例通过，配置错配与范围缺失不通过 |
+| 已提供：保留范围结论 | decision、evidence_status、limitations | 保留各范围原值，并复制限制列表 | 专项 `blocked` 状态和限制不丢失，也不修改输入 |
+| TODO 2：确定项目总决策 | 完整训练范围的 decision | 总决策只取自完整训练范围；缺失时拒绝生成 | 顶层冲突值不覆盖范围结论；缺少完整范围时报错 |
 
 
 ```python
@@ -97,22 +97,45 @@ EXPECTED_SCOPE_CONFIG = {
 
 def validate_evidence_scopes(report, expected_config):
     """核对范围配置，防止把不同实验条件的结果拼在一起。"""
-    # TODO 1：逐个检查 expected_config 中的范围及字段；
-    # 缺少范围或值不一致时，将“范围名:字段名”加入 issues。
-    # 返回 {'valid': bool, 'issues': list}。
-    raise NotImplementedError('请先完成 TODO 代码！')
+    issues = []
+    scopes = report.get('decision_scopes', {})
+    for scope_name, expected in expected_config.items():
+        actual = scopes.get(scope_name)
+        if not isinstance(actual, dict):
+            issues.append(f'{scope_name}:missing')
+            continue
+        for field, expected_value in expected.items():
+            # ==========================================
+            # TODO 1：核对证据范围配置
+            # field_matches = ???  # bool；实际字段值与预期值一致时为 True
+            # ==========================================
+            raise NotImplementedError('TODO 1：请核对范围配置')
+            if not field_matches:
+                issues.append(f'{scope_name}:{field}_mismatch')
+    return {'valid': not issues, 'issues': issues}
 
 def summarize_scope_decisions(report):
-    """提取各范围结论、证据状态与限制，不提升专项结论。"""
-    # TODO 2：为每个范围建立摘要，只保留 decision、evidence_status、limitations；
-    # limitations 必须复制为新列表，避免改摘要时修改输入报告。
-    raise NotImplementedError('请先完成 TODO 代码！')
+    """保留各范围的结论、证据状态和限制，不提升专项结论。"""
+    summary = {}
+    for scope_name, scope in report.get('decision_scopes', {}).items():
+        summary[scope_name] = {
+            'decision': scope.get('decision'),
+            'evidence_status': scope.get('evidence_status'),
+            'limitations': list(scope.get('limitations', [])),
+        }
+    return summary
 
 def build_project_decision(report, scope_summary):
     """以完整训练结论为项目总决策，并附带其他范围摘要。"""
-    # TODO 3：从 scope_summary['full_training_adoption']['decision'] 读取总决策；
-    # 缺少完整训练范围时抛出 ValueError，并在结果中附上全部范围摘要。
-    raise NotImplementedError('请先完成 TODO 代码！')
+    full_training = scope_summary.get('full_training_adoption')
+    if not isinstance(full_training, dict) or not full_training.get('decision'):
+        raise ValueError('完整训练范围缺失，不能生成项目总决策')
+    # ==========================================
+    # TODO 2：采用完整训练范围作为项目总决策
+    # project_decision = ???  # str；取完整训练范围的决策，不采用报告顶层值
+    # ==========================================
+    raise NotImplementedError('TODO 2：请确定项目总决策')
+    return {'decision': project_decision, 'scopes': scope_summary}
 
 ```
 
@@ -120,48 +143,52 @@ def build_project_decision(report, scope_summary):
 
 
 ```python
-def test_evidence_scope_exercise():
-    try:
-        valid = validate_evidence_scopes(REPORT, EXPECTED_SCOPE_CONFIG)
-        assert valid['valid'] is True and valid['issues'] == []
-        mixed = deepcopy(REPORT)
-        mixed['decision_scopes']['activation_memory_mechanism']['optimizer'] = 'AdamW'
-        assert validate_evidence_scopes(mixed, EXPECTED_SCOPE_CONFIG)['valid'] is False
-        missing = deepcopy(REPORT)
-        del missing['decision_scopes']['activation_memory_mechanism']
-        missing_check = validate_evidence_scopes(missing, EXPECTED_SCOPE_CONFIG)
-        assert missing_check['valid'] is False and 'activation_memory_mechanism:missing' in missing_check['issues']
-        wrong_length = deepcopy(REPORT)
-        wrong_length['decision_scopes']['activation_memory_mechanism']['seq_len'] = 1536
-        assert validate_evidence_scopes(wrong_length, EXPECTED_SCOPE_CONFIG)['valid'] is False
-        scopes = summarize_scope_decisions(REPORT)
-        assert scopes['activation_memory_mechanism']['decision'] == 'accept_for_activation_memory_scope'
-        assert scopes['activation_memory_mechanism']['evidence_status'] == 'blocked'
-        assert '未测得 OOM 边界' in scopes['activation_memory_mechanism']['limitations'][1]
-        scopes['activation_memory_mechanism']['limitations'].append('测试用本地修改')
-        assert '测试用本地修改' not in REPORT['decision_scopes']['activation_memory_mechanism']['limitations']
-        scopes = summarize_scope_decisions(REPORT)
-        result = build_project_decision(REPORT, scopes)
-        assert result['decision'] == 'tune'
-        assert result['scopes'] == scopes
-        contradictory = deepcopy(REPORT)
-        contradictory['decision'] = 'accept'
-        assert build_project_decision(contradictory, scopes)['decision'] == 'tune'
-        missing_full_training = {key: value for key, value in scopes.items() if key != 'full_training_adoption'}
-        try:
-            build_project_decision(REPORT, missing_full_training)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError('缺少完整训练范围时必须拒绝生成总决策')
-        print('✅ 证据范围隔离与总决策测试通过。')
-    except NotImplementedError:
-        print('请先完成 TODO 代码！')
-        raise
-    except AssertionError as exc:
-        raise NotImplementedError('请先完成 TODO 代码！') from exc
+def test_evidence_scope_config_gate():
+    """正确配置通过，缺少范围或字段错配时拒绝使用证据。"""
+    valid = validate_evidence_scopes(REPORT, EXPECTED_SCOPE_CONFIG)
+    assert valid == {'valid': True, 'issues': []}
+    mixed = deepcopy(REPORT)
+    mixed['decision_scopes']['activation_memory_mechanism']['optimizer'] = 'AdamW'
+    assert not validate_evidence_scopes(mixed, EXPECTED_SCOPE_CONFIG)['valid']
+    missing = deepcopy(REPORT)
+    del missing['decision_scopes']['activation_memory_mechanism']
+    result = validate_evidence_scopes(missing, EXPECTED_SCOPE_CONFIG)
+    assert 'activation_memory_mechanism:missing' in result['issues']
+    wrong_length = deepcopy(REPORT)
+    wrong_length['decision_scopes']['activation_memory_mechanism']['seq_len'] = 1536
+    assert not validate_evidence_scopes(wrong_length, EXPECTED_SCOPE_CONFIG)['valid']
 
-test_evidence_scope_exercise()
+def test_scope_summary_preserves_status_and_copies_limits():
+    """摘要保留专项状态与限制，且修改摘要不影响原报告。"""
+    scopes = summarize_scope_decisions(REPORT)
+    activation = scopes['activation_memory_mechanism']
+    assert activation['decision'] == 'accept_for_activation_memory_scope'
+    assert activation['evidence_status'] == 'blocked'
+    assert '未测得 OOM 边界' in activation['limitations'][1]
+    activation['limitations'].append('测试用本地修改')
+    assert '测试用本地修改' not in REPORT['decision_scopes']['activation_memory_mechanism']['limitations']
+
+def test_project_decision_uses_full_training_scope():
+    """总决策服从完整训练范围，专项结论不能覆盖它。"""
+    scopes = summarize_scope_decisions(REPORT)
+    result = build_project_decision(REPORT, scopes)
+    assert result['decision'] == 'tune'
+    assert result['scopes'] == scopes
+    contradictory = deepcopy(REPORT)
+    contradictory['decision'] = 'accept'
+    assert build_project_decision(contradictory, scopes)['decision'] == 'tune'
+    missing_scope = {key: value for key, value in scopes.items() if key != 'full_training_adoption'}
+    try:
+        build_project_decision(REPORT, missing_scope)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('缺少完整训练范围时必须拒绝生成项目总决策')
+
+test_evidence_scope_config_gate()
+test_scope_summary_preserves_status_and_copies_limits()
+test_project_decision_uses_full_training_scope()
+print('证据范围配置、专项状态保留与项目总决策测试通过。')
 
 ```
 
@@ -194,6 +221,7 @@ EXPECTED_SCOPE_CONFIG = {
 }
 
 def validate_evidence_scopes(report, expected_config):
+    """核对各证据范围的配置是否符合预期。"""
     issues = []
     scopes = report.get('decision_scopes', {})
     for scope_name, expected in expected_config.items():
@@ -202,11 +230,14 @@ def validate_evidence_scopes(report, expected_config):
             issues.append(f'{scope_name}:missing')
             continue
         for key, expected_value in expected.items():
-            if actual.get(key) != expected_value:
+            # TODO 1：核对证据范围配置
+            field_matches = actual.get(key) == expected_value
+            if not field_matches:
                 issues.append(f'{scope_name}:{key}_mismatch')
     return {'valid': not issues, 'issues': issues}
 
 def summarize_scope_decisions(report):
+    """保留各范围的结论、证据状态和限制，不提升专项结论。"""
     summary = {}
     for scope_name, scope in report.get('decision_scopes', {}).items():
         summary[scope_name] = {
@@ -217,33 +248,26 @@ def summarize_scope_decisions(report):
     return summary
 
 def build_project_decision(report, scope_summary):
+    """以完整训练范围形成项目总决策，并附带专项结论。"""
     full_training = scope_summary.get('full_training_adoption')
     if not isinstance(full_training, dict) or not full_training.get('decision'):
         raise ValueError('完整训练范围缺失，不能生成项目总决策')
-    return {'decision': full_training['decision'], 'scopes': scope_summary}
+    # TODO 2：采用完整训练范围作为项目总决策
+    project_decision = full_training['decision']
+    return {'decision': project_decision, 'scopes': scope_summary}
 
 ```
 
 ### 解析
 
-题目用缩小后的报告字段练习三项判断：配置是否仍属于声明的证据范围、专项结论是否保留原有状态和限制、项目总决策是否仍由完整训练范围控制。示例数据仅用于 CPU 逻辑测试，不是新增测量结果。
+先核对每组证据的实验配置，再保留专项结论，并以完整训练结论决定项目级状态。
 
-**1. 核对证据范围**
+**TODO 1：** 对每个预期配置字段逐项比较；缺少整个范围由骨架记录为 `missing`，字段不相等时记录对应字段。测试覆盖正确配置、范围缺失和序列长度错配。
 
-- 完整训练与激活显存专项采用不同优化器和序列长度，配置不匹配时不能沿用该范围的结论。
-- 测试覆盖合法报告和跨范围配置错配。
+**已提供的范围摘要：** 摘要保留各范围的结论、证据状态和限制，并复制限制列表。专项范围即使有范围内结论，也要保留 `blocked` 状态和未测边界；测试验证字段保留且不会修改输入报告。
 
-**2. 分别保留范围结论**
+**TODO 2：** 项目总决策只取自 `full_training_adoption`，不读取报告顶层可能冲突的旧值；缺少该范围时停止生成。测试覆盖顶层冲突和范围缺失。
 
-- 激活显存专项通过只说明已测范围内的结果；`blocked` 状态和未测 OOM 边界仍需保留。Profiler 归因只解释变化来源。
-- 测试确认专项结论不会覆盖完整训练结论，限制字段也不会丢失。
-
-**3. 形成项目总决策**
-
-- 本项目的总决策依据完整训练范围；专项结果作为范围内结论附带，不把 `accept_for_activation_memory_scope` 改写成全局 `accept`。
-- 测试确认示例总决策仍为 `tune`，且各证据状态原样输出。
-
-Profiler 的热点信息用于解释，完整训练数据用于采用判断，两类证据不可互换。
 
 ### Step 5（项目实验）：核对性能证据并生成交接结果
 
@@ -1230,8 +1254,7 @@ if close_report_path.is_file():
 
 #### 5.6 形成决策与交接结果
 
-`close` 在 5.5 核对通过后生成专项报告和交接文件。相同标签和相同证据可重复运行；同一路径已有不同内容时停止。
-登记回执核对标签、决策、报告与交接文件，并逐项检查来源文件存在且 SHA256 匹配。
+`close` 在 5.5 核对通过后生成专项报告和交接文件；相同证据可复用，证据冲突时停止。
 
 | 输出字段 | 适用范围 |
 | --- | --- |

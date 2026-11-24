@@ -19,36 +19,36 @@
 - [39：Heterogeneous PD and Serving Tiers](./39_Hetero_PD_and_Serving_Tiers.md)：异构路由和服务分层。
 ### Step 1：哪些工作可以重叠
 
-CPU 调度、GPU 计算内核和状态传输只有在资源与依赖允许时才能并行。双线程可让调度器准备下一轮，双 CUDA Stream 可让独立传输与计算并发；如果二者争用同一引擎、同一带宽或同一状态，名义重叠不会变成关键路径收益。
+控制面准备、设备计算和状态传输只有在数据依赖解除、执行资源独立时才能并行。若两项工作争用同一计算资源、同一链路或同一状态，时间线上看似并发，也不会缩短关键路径。
 
 | 工作 | 可重叠对象 | 主要约束 |
 |:---|:---|:---|
-| CPU batch preparation | 当前 GPU compute | Python / 调度线程与队列同步 |
-| H2D / D2H / P2P transfer | 独立 GPU compute | copy engine、链路带宽、stream dependency |
-| communication collective | 无依赖 compute | kernel / SM / network 资源争用 |
-| Prefill–Decode handoff | 其他请求的计算 | 当前请求 Decode 仍必须等待状态可见 |
+| 下一轮批次准备 | 当前设备计算 | 调度状态、队列同步与数据就绪 |
+| 主机—设备或设备间传输 | 与该状态无依赖的设备计算 | 复制引擎、链路带宽与依赖顺序 |
+| 集合通信 | 无数据依赖的计算 | 计算单元、显存带宽与网络资源争用 |
+| 预填充—解码交接 | 其他请求的计算 | 当前请求的解码仍须等待状态可见 |
 
 ![Serving overlap 时间线](../public/02_PyTorch_Algorithms/inf_serving_overlap_timeline.svg)
 ### Step 2：总时间与暴露时间为什么不同
 
-若状态传输耗时 `T_transfer`，可利用的独立计算窗口为 `T_window`，最小暴露传输时间近似为 `max(T_transfer - T_window, 0)`。这个估算是准入判断，不代表实际系统一定达到理想重叠；stream 同步、带宽争用和分块粒度都会缩短有效窗口。
+若状态传输耗时 `T_{transfer}`，可利用的独立计算窗口为 `T_{window}`，最小暴露传输时间近似为 `max(T_{transfer} - T_{window}, 0)`。这是理想下界；同步等待、带宽争用和任务粒度都会缩短有效窗口。
 
 | 指标 | 含义 | 判断用途 |
 |:---|:---|:---|
-| transfer time | 状态移动的完整时间 | 链路与 payload 成本 |
-| overlap window | 可与传输并行的独立工作 | 理论隐藏上限 |
-| exposed time | 仍留在关键路径的传输 | 对 TTFT / TPOT 的直接影响 |
-| overlap ratio | 被隐藏时间 / transfer time | overlap 是否真正生效 |
-### Step 3：KV Handoff 还包含所有权与元数据
+| 完整传输时间 | 状态移动的完整时间 | 链路与载荷成本 |
+| 可重叠窗口 | 可与传输并行的独立工作 | 理论隐藏上限 |
+| 暴露时间 | 仍留在关键路径的传输 | 对首 Token 延迟和相邻 Token 延迟的直接影响 |
+| 重叠比例 | 被隐藏时间 / 完整传输时间 | 重叠是否真正缩短关键路径 |
+### Step 3：KV 状态交接还包含所有权与元数据
 
 预填充—解码分离时，交接对象不仅是 K/V 字节，还包括块表、序列位置、数据类型、缩放因子、请求标识和所有权状态。解码阶段在这些信息可见之前不能安全读取缓存；因此状态交接的完成点应由事件或协议确认，而不是只依据传输动作已经提交。
 
 | 阶段 | 必须完成的状态 | 失败表现 |
 |:---|:---|:---|
-| Prefill finalize | KV 写入完成、元数据冻结 | 读取未完成状态 |
-| Transfer | payload 与 metadata 到达目标 | 字节缺失、版本不一致 |
-| Register | block 地址和所有权对 Decode 可见 | 找不到页、重复释放 |
-| Decode start | 依赖事件满足 | 首 token 阻塞或错误 |
+| 预填充收尾 | KV 写入完成、元数据冻结 | 读取未完成状态 |
+| 状态传输 | 载荷与元数据到达目标 | 字节缺失、版本不一致 |
+| 状态登记 | 块地址和所有权对解码阶段可见 | 找不到页、重复释放 |
+| 解码启动 | 依赖事件满足 | 首 Token 阻塞或错误 |
 
 ![Prefill–Decode 状态交接依赖](../public/02_PyTorch_Algorithms/inf_serving_handoff.svg)
 ### Step 4：实现暴露时间与状态交接门槛
@@ -57,10 +57,10 @@ CPU 调度、GPU 计算内核和状态传输只有在资源与依赖允许时才
 
 | TODO / 函数 | 学习者完成的机制 | 必须满足的约束 | 测试证据 |
 | --- | --- | --- | --- |
-| TODO 1 · `compute_exposed_interval` | 计算未被隐藏的传输区间 | 覆盖窗口先裁剪到传输区间，再合并重叠部分 | 无覆盖、局部覆盖、重叠窗口与完全隐藏 |
-| TODO 2 · `estimate_handoff` | 换算完整状态交接时间 | 带宽单位统一为 Gbit/s；加入固定延迟并保留总时间与暴露时间 | 字节换算、固定延迟与覆盖窗口 |
-| TODO 3 · `validate_handoff_state` | 检查状态可消费条件 | 分别收集未就绪依赖与请求身份、版本不兼容项 | 完整状态、缺失依赖和版本冲突 |
-| TODO 4 · `plan_decode_start` | 选择 Decode 启动动作 | 依赖未齐时仅在 deadline 内等待；超时时拒绝或回退 | 立即启动、等待和超时三类决策 |
+| TODO 1：计算暴露区间<br>`compute_exposed_interval` | 计算未被隐藏的传输区间 | 覆盖窗口先裁剪到传输区间，再合并重叠部分 | 无覆盖、局部覆盖、重叠窗口与完全隐藏 |
+| TODO 2：估算交接时间<br>`estimate_handoff` | 换算完整状态交接时间 | 带宽单位统一为 Gbit/s；加入固定延迟并保留总时间与暴露时间 | 字节换算、固定延迟与覆盖窗口 |
+| TODO 3：验证交接状态<br>`validate_handoff_state` | 检查状态可消费条件 | 分别收集未就绪依赖与请求身份、版本不兼容项 | 完整状态、缺失依赖和版本冲突 |
+| TODO 4：选择解码动作<br>`plan_decode_start` | 选择解码启动动作 | 依赖未齐时仅在期限内等待；超时时拒绝或回退 | 立即启动、等待和超时三类决策 |
 
 ```python
 from math import isclose
@@ -209,45 +209,60 @@ def plan_decode_start(validation, ready_at_ms, deadline_ms):
 
 ### 解析
 
-本题依次完成区间合并、链路时间换算、状态兼容性检查和 Decode 启动决策。答案保留题目区的时间线与返回结构，只补全四个机制判断。
+#### TODO 1：合并覆盖区间
 
-**TODO 1：合并覆盖区间**
+- 将可重叠窗口裁剪到传输区间后合并；重叠区间只计算一次，隐藏时间与暴露时间之和必须等于完整传输时间。
+- 答案通过区间裁剪与合并计算覆盖长度；测试覆盖相交窗口、区间外窗口、空窗口和完全覆盖。
 
-- 覆盖窗口先裁剪到传输区间，再合并相交部分，避免同一时间段被重复扣减。
-- 区间测试同时包含重叠窗口和区间外窗口，核对隐藏时间与暴露时间守恒。
+#### TODO 2：换算交接时间
 
-**TODO 2：换算交接时间**
+- 状态大小和链路带宽决定搬运时间，固定延迟单独计入；字节、比特和毫秒统一后才能扣除可隐藏区间。
+- 答案先换算完整传输时间，再调用区间账本；测试核对总时间、隐藏时间和暴露时间三者关系。
 
-- `1 Gbit/s` 等于 `125,000 bytes/ms`；固定延迟必须在带宽时间之外单独保留。
-- 链路测试核对完整传输时间、覆盖窗口和最终暴露时间。
+#### TODO 3：验证交接状态
 
-**TODO 3：验证交接状态**
+- 载荷、元数据、所有权、请求身份和版本共同决定接收端能否消费状态；字段缺失与身份或版本不兼容必须分开报告。
+- 答案分别收集未就绪依赖和不兼容项；测试制造缺失状态、请求不匹配与版本冲突并核对失败原因。
 
-- payload、metadata、ownership、request identity 和版本共同决定状态能否消费。
-- 协议测试分别制造缺失字段和版本变化，确认两类失败不会混为一谈。
+#### TODO 4：选择启动动作
 
-**TODO 4：选择启动动作**
-
-- 版本不兼容需要重算；状态齐全可立即启动；依赖未齐时再由 deadline 决定等待或回退。
-- deadline 边界测试确认就绪时刻等于门槛时仍可等待。
+- 状态齐全时可以启动，身份或版本不兼容时必须重算；依赖未齐时，只有预计就绪时刻不晚于期限才允许等待。
+- 答案按兼容性、就绪状态和期限依次决策；测试覆盖立即启动、等待、回退，以及就绪时刻等于期限的边界。
 
 ### Step 5：GPU 机制实验——CUDA Stream 的传输—计算重叠
 
-CPU 部分计算理想暴露时间；GPU 实验用 PyTorch CUDA Stream 对照串行与重叠时间线，验证独立 H2D 传输能否被矩阵计算隐藏。它只形成单卡物理重叠证据，不代表请求队列或 Prefill–Decode 服务协议已经成立。
+| 学习问题 | CPU 机制实验 | GPU 真实实验 |
+| --- | --- | --- |
+| 独立传输能否被计算窗口隐藏 | 用时间区间计算理论隐藏时间、暴露时间和交接门槛 | 用 PyTorch CUDA Stream 对照串行与重叠时间线，检查真实复制路径、计算正确性和与理论下界的距离 |
 
-#### 5.1 配置环境与固定工作负载
+GPU 结果只证明单卡传输—计算的物理重叠，不代表请求队列或预填充—解码服务协议已经成立。
 
-首次运行按[推理优化实验 Quickstart](../topic_discussion/inference_optimization/quickstart.md#inf-cuda-mechanism-quickstart)创建 `INF-CUDA-MECHANISM` 环境；模型、Profile 与结果状态见[实验资产表](../topic_discussion/inference_optimization/experiment_assets.md)。除运行开关和结果标签外，其余参数共同定义本节固定工作负载。
+#### 5.1 环境与固定工作负载
+
+首次运行按[推理优化实验 Quickstart](../topic_discussion/inference_optimization/quickstart.md#inf-cuda-mechanism-quickstart)创建 `INF-CUDA-MECHANISM` 环境；Profile 与结果状态见[实验资产表](../topic_discussion/inference_optimization/experiment_assets.md)。运行前的 Profile 预检必须返回 `status=ok`。
+
+| 配置层 | 本实验固定口径 | 修改规则 |
+| --- | --- | --- |
+| 载荷 | `16/64/128 MiB` 的固定主机—设备传输 | 修改档位后递增 workload version |
+| 计算窗口 | `2048 × 2048` 的独立矩阵乘 | 矩阵规模、精度和输入保持一致 |
+| 配对变量 | 同一载荷与矩阵下比较串行和双 Stream 重叠 | 两条路径使用相同数据并交错测量 |
+| 测量 | 预热后记录 Median、P95、理论下界和重叠效率 | 不以单次耗时或均值替代长尾 |
+| 结果 | 正确性、路径证据、硬件快照和 JSON 路径 | 正式复测使用唯一 `RUN_LABEL` |
 
 
 ```python
 RUN_MODE = 'dry_run'  # 默认值 dry_run：只登记计划；改为 real_gpu 后执行真实 CUDA Stream 对照。
 RUN_LABEL = 'default'  # 默认值 default：同一工作负载复测时改为新的唯一标签。
 ENVIRONMENT_PROFILE = 'INF-CUDA-MECHANISM'  # 默认值：本专题单卡机制实验环境。
+WORKLOAD_ID = 'inference-serving-overlap'  # 稳定工作负载身份。
+WORKLOAD_VERSION = 'v2'  # v2 使用复用 Stream、交错配对和理论下界。
+GPU_DTYPE = 'auto'  # 默认 auto：优先原生 BF16，否则使用 FP16。
 PAYLOAD_MIB = [16, 64, 128]  # 默认值：三档固定 H2D payload，用于观察重叠收益随传输量变化。
 MATRIX_SIZE = 2048  # 默认值：独立 BF16 方阵乘规模，提供可与传输重叠的计算窗口。
 WARMUP_STEPS = 5  # 默认值：正式计时前的预热次数。
 REPEAT_STEPS = 20  # 默认值：每种时间线的重复测量次数，用于 median/P95。
+MIN_GAIN_RATIO = 0.02  # 默认值：Median 至少改善 2% 才通过收益门槛。
+MAX_P95_RATIO = 1.05  # 默认值：重叠路径 P95 最多允许回退 5%。
 SEED = 42  # 默认值：固定张量内容，保证串行与重叠路径可比较。
 
 ```
@@ -273,11 +288,25 @@ def percentile_95(values):
     return ordered[max(0, int(0.95 * len(ordered)) - 1)]
 
 
-def time_case(host_source, device_target, left, right, overlap):
-    copy_stream = torch.cuda.Stream()
-    compute_stream = torch.cuda.Stream()
+def select_gpu_dtype():
+    if GPU_DTYPE == 'float16':
+        return torch.float16
+    if GPU_DTYPE == 'bfloat16':
+        return torch.bfloat16
+    if GPU_DTYPE != 'auto':
+        raise ValueError('GPU_DTYPE 只能是 auto / float16 / bfloat16')
+    try:
+        supported = torch.cuda.is_bf16_supported(including_emulation=False)
+    except TypeError:
+        supported = torch.cuda.get_device_capability()[0] >= 8
+    return torch.bfloat16 if supported else torch.float16
+
+
+def time_case(host_source, device_target, left, right, copy_stream, compute_stream, overlap):
     start = torch.cuda.Event(enable_timing=True)
+    copy_start = torch.cuda.Event(enable_timing=True)
     copy_done = torch.cuda.Event(enable_timing=True)
+    compute_start = torch.cuda.Event(enable_timing=True)
     compute_done = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
     torch.cuda.synchronize()
@@ -286,32 +315,46 @@ def time_case(host_source, device_target, left, right, overlap):
         copy_stream.wait_event(start)
         compute_stream.wait_event(start)
         with torch.cuda.stream(copy_stream):
+            copy_start.record()
             device_target.copy_(host_source, non_blocking=True)
             copy_done.record()
         with torch.cuda.stream(compute_stream):
+            compute_start.record()
             product = left @ right
             compute_done.record()
         torch.cuda.current_stream().wait_event(copy_done)
         torch.cuda.current_stream().wait_event(compute_done)
     else:
+        copy_start.record()
         device_target.copy_(host_source, non_blocking=True)
         copy_done.record()
+        compute_start.record()
         product = left @ right
         compute_done.record()
     end.record()
     end.synchronize()
-    return {'total_ms': start.elapsed_time(end), 'copy_ms': start.elapsed_time(copy_done), 'compute_ms': start.elapsed_time(compute_done), 'checksum': float(product[0, 0])}
+    return {
+        'total_ms': start.elapsed_time(end),
+        'copy_ms': copy_start.elapsed_time(copy_done),
+        'compute_ms': compute_start.elapsed_time(compute_done),
+        'checksum': float(product[0, 0]),
+    }
 
 
 result = {
-    'schema_version': 'inference-mechanism-gpu/v1',
+    'schema_version': 'inference-mechanism-gpu/v2',
     'semantic_id': 'INF-SERVING-OVERLAP',
     'run_mode': RUN_MODE,
     'run_label': RUN_LABEL,
     'environment_profile': ENVIRONMENT_PROFILE,
     'framework': {'torch': package_version('torch')},
     'hardware': {'cuda_available': torch.cuda.is_available()},
-    'workload': {'payload_mib': PAYLOAD_MIB, 'matrix_size': MATRIX_SIZE, 'warmup_steps': WARMUP_STEPS, 'repeat_steps': REPEAT_STEPS, 'seed': SEED},
+    'workload': {
+        'id': WORKLOAD_ID, 'version': WORKLOAD_VERSION, 'payload_mib': PAYLOAD_MIB,
+        'matrix_size': MATRIX_SIZE, 'dtype': GPU_DTYPE,
+        'warmup_steps': WARMUP_STEPS, 'repeat_steps': REPEAT_STEPS, 'seed': SEED,
+        'minimum_gain_ratio': MIN_GAIN_RATIO, 'maximum_p95_ratio': MAX_P95_RATIO,
+    },
     'cases': [], 'failure': None, 'evidence_level': 'dry_run', 'decision': 'not_measured',
 }
 
@@ -322,31 +365,66 @@ if RUN_MODE == 'real_gpu':
         properties = torch.cuda.get_device_properties(0)
         result['hardware'].update({'device': torch.cuda.get_device_name(0), 'cuda': torch.version.cuda, 'async_engine_count': getattr(properties, 'async_engine_count', None)})
         torch.manual_seed(SEED)
-        left = torch.randn(MATRIX_SIZE, MATRIX_SIZE, device='cuda', dtype=torch.bfloat16)
-        right = torch.randn(MATRIX_SIZE, MATRIX_SIZE, device='cuda', dtype=torch.bfloat16)
+        dtype = select_gpu_dtype()
+        result['workload']['resolved_dtype'] = str(dtype)
+        left = torch.randn(MATRIX_SIZE, MATRIX_SIZE, device='cuda', dtype=dtype)
+        right = torch.randn(MATRIX_SIZE, MATRIX_SIZE, device='cuda', dtype=dtype)
+        copy_stream = torch.cuda.Stream()
+        compute_stream = torch.cuda.Stream()
+        distinct_streams = copy_stream.cuda_stream != compute_stream.cuda_stream
         for payload_mib in PAYLOAD_MIB:
-            elements = payload_mib * 1024 * 1024 // 2
-            host_source = torch.randn(elements, dtype=torch.bfloat16, pin_memory=True)
+            elements = payload_mib * 1024 * 1024 // torch.empty((), dtype=dtype).element_size()
+            host_source = torch.randn(elements, dtype=dtype, pin_memory=True)
             device_target = torch.empty_like(host_source, device='cuda')
             for _ in range(WARMUP_STEPS):
-                time_case(host_source, device_target, left, right, False)
-                time_case(host_source, device_target, left, right, True)
-            serial = [time_case(host_source, device_target, left, right, False) for _ in range(REPEAT_STEPS)]
-            overlap = [time_case(host_source, device_target, left, right, True) for _ in range(REPEAT_STEPS)]
+                time_case(host_source, device_target, left, right, copy_stream, compute_stream, False)
+                time_case(host_source, device_target, left, right, copy_stream, compute_stream, True)
+            serial = []
+            overlap = []
+            for repeat_index in range(REPEAT_STEPS):
+                order = (False, True) if repeat_index % 2 == 0 else (True, False)
+                for overlap_enabled in order:
+                    sample = time_case(
+                        host_source, device_target, left, right, copy_stream, compute_stream, overlap_enabled
+                    )
+                    (overlap if overlap_enabled else serial).append(sample)
             serial_ms = statistics.median(item['total_ms'] for item in serial)
             overlap_ms = statistics.median(item['total_ms'] for item in overlap)
+            serial_p95_ms = percentile_95([item['total_ms'] for item in serial])
+            overlap_p95_ms = percentile_95([item['total_ms'] for item in overlap])
+            copy_median_ms = statistics.median(item['copy_ms'] for item in serial)
+            compute_median_ms = statistics.median(item['compute_ms'] for item in serial)
+            theoretical_lower_bound_ms = max(copy_median_ms, compute_median_ms)
+            hidden_ms = max(serial_ms - overlap_ms, 0.0)
+            hideable_ms = max(serial_ms - theoretical_lower_bound_ms, 0.0)
+            overlap_efficiency = min(hidden_ms / hideable_ms, 1.0) if hideable_ms > 0 else 0.0
+            latency_ratio = overlap_ms / serial_ms
+            p95_ratio = overlap_p95_ms / serial_p95_ms
+            copy_correct = torch.equal(device_target.cpu(), host_source)
+            compute_correct = abs(serial[0]['checksum'] - overlap[0]['checksum']) < 1e-2
+            path_evidence = {
+                'host_memory_pinned': bool(host_source.is_pinned()),
+                'distinct_streams': bool(distinct_streams),
+                'non_blocking_copy': True,
+            }
+            path_confirmed = all(path_evidence.values())
             result['cases'].append({
-                'payload_mib': payload_mib, 'serial_median_ms': serial_ms, 'serial_p95_ms': percentile_95([item['total_ms'] for item in serial]),
-                'overlap_median_ms': overlap_ms, 'overlap_p95_ms': percentile_95([item['total_ms'] for item in overlap]),
-                'latency_ratio': overlap_ms / serial_ms, 'hidden_ms': max(serial_ms - overlap_ms, 0.0),
-                'copy_correct': torch.equal(device_target.cpu(), host_source),
-                'compute_correct': abs(serial[0]['checksum'] - overlap[0]['checksum']) < 1e-2,
-                'path_confirmed': True,
+                'payload_mib': payload_mib,
+                'serial_median_ms': serial_ms, 'serial_p95_ms': serial_p95_ms,
+                'overlap_median_ms': overlap_ms, 'overlap_p95_ms': overlap_p95_ms,
+                'copy_median_ms': copy_median_ms, 'compute_median_ms': compute_median_ms,
+                'theoretical_lower_bound_ms': theoretical_lower_bound_ms,
+                'latency_ratio': latency_ratio, 'p95_ratio': p95_ratio,
+                'hidden_ms': hidden_ms, 'overlap_efficiency': overlap_efficiency,
+                'copy_correct': copy_correct, 'compute_correct': compute_correct,
+                'path_evidence': path_evidence, 'path_confirmed': path_confirmed,
+                'benefit_gate_passed': latency_ratio <= 1.0 - MIN_GAIN_RATIO and p95_ratio <= MAX_P95_RATIO,
             })
         correct = all(item['copy_correct'] and item['compute_correct'] and item['path_confirmed'] for item in result['cases'])
-        faster = any(item['latency_ratio'] < 0.98 for item in result['cases'])
+        accepted_cases = sum(item['benefit_gate_passed'] for item in result['cases'])
+        result['summary'] = {'correctness_passed': correct, 'accepted_cases': accepted_cases, 'total_cases': len(result['cases'])}
         result['evidence_level'] = 'local_mechanism_benchmark'
-        result['decision'] = 'accept_physical_overlap' if correct and faster else ('tune_overlap_window' if correct else 'reject_incorrect_path')
+        result['decision'] = 'accept_physical_overlap' if correct and accepted_cases > 0 else ('tune_overlap_window' if correct else 'reject_incorrect_path')
     except Exception as exc:
         result['failure'] = {'type': type(exc).__name__, 'message': str(exc)}
         result['evidence_level'] = 'failed_real_gpu_attempt'
@@ -374,14 +452,14 @@ summary, report.get('cases', [])
 
 #### 5.4 解释结果并作出决策
 
-先检查复制结果、计算校验和与双 Stream 路径，再观察 payload 增大时 `latency_ratio` 和 `hidden_ms` 是否稳定改善。若正确性通过但没有收益，应调整计算窗口或 payload，而不是把 Stream 已创建解释成重叠已经生效。
+先检查复制结果、计算校验和、pinned memory、独立 Stream 与非阻塞复制，再比较三档 Payload 的总耗时、理论下界和 P95。该结果只证明单卡传输—计算的物理重叠，不代表完整服务队列或 Prefill–Decode 交接已经成立。
 
-| 证据 | 关键字段 | 可接受现象 | 决策 |
+| 观察项 | 读取字段 | 当前结果 | 解释与动作 |
 |:---|:---|:---|:---|
-| 路径与正确性 | `path_confirmed`、`copy_correct`、`compute_correct` | 三项均为真 | 否则拒绝候选 |
-| 延迟 | `serial_median_ms`、`overlap_median_ms`、P95 | 至少一档 payload 稳定缩短 | 接受单卡物理重叠证据 |
-| 暴露时间 | `latency_ratio`、`hidden_ms` | payload 矩阵能解释收益拐点 | 无收益时调整窗口 |
-| 证据边界 | `evidence_level` | `local_mechanism_benchmark` | 队列和 handoff 仍交给项目验证 |
+| 路径与正确性 | `path_evidence`、`path_confirmed`、`copy_correct`、`compute_correct` | 三档均通过；Host 内存 pinned、Stream 独立、复制非阻塞 | 当前路径条件成立，但仍需用时间线判断是否产生收益 |
+| 资源与性能 | 串行 / 重叠 Median、P95、`latency_ratio` | 三档均通过收益门槛；总延迟比为 `0.788/0.934/0.965` | 重叠路径分别缩短约 `21.2%/6.6%/3.5%` |
+| 暴露时间 | `copy_median_ms`、`compute_median_ms`、`theoretical_lower_bound_ms`、`hidden_ms`、`overlap_efficiency` | 隐藏时间约 `0.318–0.333 ms`，重叠效率 `95.7%–97.6%` | 传输占主导时更接近理论下界；收益仍取决于计算窗口 |
+| 证据与决策 | `evidence_level`、`decision` | `local_mechanism_benchmark`；`accept_physical_overlap` | 当前证据确认物理重叠路径，不能直接外推为请求级吞吐收益 |
 
 ## 相关阅读
 

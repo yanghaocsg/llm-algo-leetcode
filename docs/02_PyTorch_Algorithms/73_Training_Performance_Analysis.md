@@ -161,33 +161,63 @@ def summarize_training_memory_ledger(model, optimizer):
 
 def validate_training_baseline(report, minimum_samples=3):
     """确认训练基线具备归因所需的身份、状态和重复样本。"""
-    # ==========================================
-    # TODO 1：核验基线契约。
-    # 检查 workload_id、status、samples，以及每个样本的阶段耗时和峰值字段。
-    # issues = ???
-    # 返回 is_valid、issues 和 sample_count。
-    # ==========================================
-    raise NotImplementedError('请先完成 TODO 代码！')
+    issues = []
+    if not isinstance(report.get('workload_id'), str) or not report.get('workload_id'):
+        issues.append('workload_id_missing')
+    if report.get('status') != 'ok':
+        issues.append('baseline_failed')
+    samples = report.get('samples')
+    if not isinstance(samples, list) or len(samples) < minimum_samples:
+        issues.append('insufficient_samples')
+        samples = samples if isinstance(samples, list) else []
+    required = ('step_time_ms', 'samples_per_s', 'peak_memory_mb', 'stages_ms')
+    for index, sample in enumerate(samples):
+        # ==========================================
+        # TODO 1：核对每条样本的必需字段
+        # sample_is_complete = ???  # bool；样本为字典且包含 required 中全部字段
+        # ==========================================
+        raise NotImplementedError('TODO 1：请核对样本字段')
+        if not sample_is_complete:
+            issues.append(f'sample_{index}:incomplete')
+    return {'is_valid': not issues, 'issues': issues, 'sample_count': len(samples)}
 
 def build_training_baseline_evidence(report, memory_ledger, capacity_mb):
     """把重复样本、阶段耗时与对象账本合成为基线证据。"""
+    step_times = [sample['step_time_ms'] for sample in samples]
+    step_median = statistics.median(step_times)
+    step_cv = statistics.pstdev(step_times) / statistics.fmean(step_times)
+    stage_names = samples[0]['stages_ms'].keys()
     # ==========================================
-    # TODO 2：构造基线证据。
-    # 计算 step time 中位数与变异系数、各阶段中位数、主导阶段和容量占用率。
-    # stage_medians = ???
-    # dominant_stage = ???
-    # 返回稳定性、容量压力和账本摘要。
+    # TODO 2：汇总阶段耗时并识别主导阶段
+    # stage_medians = ???  # dict[str, float]；每个阶段在重复样本上的中位数
+    # dominant_stage = ???  # str；阶段中位数最高的阶段名
     # ==========================================
-    raise NotImplementedError('请先完成 TODO 代码！')
+    raise NotImplementedError('TODO 2：请汇总阶段证据')
+    peak_memory_mb = statistics.median(sample['peak_memory_mb'] for sample in samples)
+    return {
+        'workload_id': report['workload_id'], 'step_time_median_ms': step_median,
+        'step_time_cv': step_cv, 'stable': step_cv <= 0.10,
+        'stage_medians_ms': stage_medians, 'dominant_stage': dominant_stage,
+        'dominant_stage_share': stage_medians[dominant_stage] / sum(stage_medians.values()),
+        'peak_memory_mb': peak_memory_mb, 'capacity_ratio': peak_memory_mb / capacity_mb,
+        'memory_ledger': memory_ledger,
+    }
 
 def classify_training_bottleneck(evidence, capacity_alert_ratio=0.90, hotspot_share=0.40):
     """依据基线证据提出下一项可验证实验。"""
+    if not evidence.get('stable', False):
+        return {'status': 'rerun_required', 'hypothesis': 'measurement_unstable', 'evidence': ['step_time_cv'], 'next_experiment': 'repeat_training_baseline'}
     # ==========================================
-    # TODO 3：提出瓶颈假设。
-    # 证据不稳定时先复测；容量压力优先进入 76；否则根据主导阶段占比选择下一项实验。
-    # 返回 status、hypothesis、evidence 和 next_experiment。
+    # TODO 3：判断容量是否已形成瓶颈
+    # capacity_is_high = ???  # bool；容量占用率达到 capacity_alert_ratio 时为 True
     # ==========================================
-    raise NotImplementedError('请先完成 TODO 代码！')
+    raise NotImplementedError('TODO 3：请判断容量压力')
+    if capacity_is_high:
+        return {'status': 'ready', 'hypothesis': 'training_capacity_pressure', 'evidence': ['peak_memory_mb', 'capacity_ratio', 'memory_ledger'], 'next_experiment': '76_activation_checkpoint_offload'}
+    if evidence['dominant_stage_share'] >= hotspot_share:
+        stage = evidence['dominant_stage']
+        return {'status': 'ready', 'hypothesis': f'{stage}_critical_path', 'evidence': ['stage_medians_ms', 'dominant_stage_share'], 'next_experiment': f'test_{stage}_candidate'}
+    return {'status': 'needs_more_evidence', 'hypothesis': 'no_dominant_bottleneck', 'evidence': ['stage_medians_ms'], 'next_experiment': 'collect_trace'}
 
 ```
 
@@ -195,6 +225,7 @@ def classify_training_bottleneck(evidence, capacity_alert_ratio=0.90, hotspot_sh
 ```python
 # 测试你的实现
 def test_training_project_template():
+    """验证训练计时、状态账本和基线归因的核心边界。"""
     try:
         torch.manual_seed(42)
         counter = {'n': 0}
@@ -306,7 +337,58 @@ def test_training_project_template():
         raise
 
 
+def _baseline_report_fixture():
+    """构造三次完整且稳定的训练基线样本。"""
+    return {
+        'workload_id': 'train-b2-s1024', 'status': 'ok',
+        'samples': [
+            {'step_time_ms': 100.0, 'samples_per_s': 20.0, 'peak_memory_mb': 9200.0, 'stages_ms': {'input': 10.0, 'forward': 25.0, 'backward': 50.0, 'update': 15.0}},
+            {'step_time_ms': 102.0, 'samples_per_s': 19.6, 'peak_memory_mb': 9250.0, 'stages_ms': {'input': 11.0, 'forward': 25.0, 'backward': 51.0, 'update': 15.0}},
+            {'step_time_ms': 98.0, 'samples_per_s': 20.4, 'peak_memory_mb': 9180.0, 'stages_ms': {'input': 9.0, 'forward': 24.0, 'backward': 50.0, 'update': 15.0}},
+        ],
+    }
+
+def test_baseline_contract_rejects_incomplete_reports():
+    """完整报告通过，身份、状态、重复数或样本字段缺失时拒绝归因。"""
+    report = _baseline_report_fixture()
+    assert validate_training_baseline(report)['is_valid'] is True
+    assert not validate_training_baseline({**report, 'workload_id': ''})['is_valid']
+    assert not validate_training_baseline({**report, 'status': 'failed'})['is_valid']
+    assert not validate_training_baseline({**report, 'samples': report['samples'][:2]})['is_valid']
+    incomplete = _baseline_report_fixture()
+    incomplete['samples'][0].pop('stages_ms')
+    assert 'sample_0:incomplete' in validate_training_baseline(incomplete)['issues']
+
+def test_baseline_evidence_summarizes_stability_and_hotspot():
+    """重复测量给出稳定性、阶段中位数、主导阶段和容量占用。"""
+    evidence = build_training_baseline_evidence(
+        _baseline_report_fixture(),
+        {'parameter_bytes': 100, 'gradient_bytes': 100, 'optimizer_state_bytes': 200},
+        capacity_mb=10000.0,
+    )
+    assert evidence['stable'] is True
+    assert evidence['stage_medians_ms']['backward'] == 50.0
+    assert evidence['dominant_stage'] == 'backward'
+    assert evidence['capacity_ratio'] > 0.90
+
+def test_bottleneck_hypothesis_prioritizes_remeasurement_and_capacity():
+    """不稳定先复测，稳定但显存接近上限时转入容量实验。"""
+    evidence = build_training_baseline_evidence(
+        _baseline_report_fixture(),
+        {'parameter_bytes': 100, 'gradient_bytes': 100, 'optimizer_state_bytes': 200},
+        capacity_mb=10000.0,
+    )
+    assert classify_training_bottleneck({**evidence, 'stable': False})['next_experiment'] == 'repeat_training_baseline'
+    capacity = classify_training_bottleneck(evidence)
+    assert capacity['hypothesis'] == 'training_capacity_pressure'
+    assert capacity['next_experiment'] == '76_activation_checkpoint_offload'
+    time_bound = classify_training_bottleneck({**evidence, 'capacity_ratio': 0.5, 'dominant_stage_share': 0.6})
+    assert time_bound['next_experiment'] == 'test_backward_candidate'
+
 test_training_project_template()
+test_baseline_contract_rejects_incomplete_reports()
+test_baseline_evidence_summarizes_stability_and_hotspot()
+test_bottleneck_hypothesis_prioritizes_remeasurement_and_capacity()
 
 ```
 
@@ -432,7 +514,9 @@ def validate_training_baseline(report, minimum_samples=3):
         samples = samples if isinstance(samples, list) else []
     required = ('step_time_ms', 'samples_per_s', 'peak_memory_mb', 'stages_ms')
     for index, sample in enumerate(samples):
-        if not isinstance(sample, dict) or any(key not in sample for key in required):
+        # TODO 1：核对每条样本的必需字段
+        sample_is_complete = isinstance(sample, dict) and all(key in sample for key in required)
+        if not sample_is_complete:
             issues.append(f'sample_{index}:incomplete')
     return {'is_valid': not issues, 'issues': issues, 'sample_count': len(samples)}
 
@@ -442,6 +526,7 @@ def build_training_baseline_evidence(report, memory_ledger, capacity_mb):
     step_median = statistics.median(step_times)
     step_cv = statistics.pstdev(step_times) / statistics.fmean(step_times)
     stage_names = samples[0]['stages_ms'].keys()
+    # TODO 2：汇总阶段耗时并识别主导阶段
     stage_medians = {name: statistics.median(sample['stages_ms'][name] for sample in samples) for name in stage_names}
     dominant_stage = max(stage_medians, key=stage_medians.get)
     peak_memory_mb = statistics.median(sample['peak_memory_mb'] for sample in samples)
@@ -457,7 +542,9 @@ def build_training_baseline_evidence(report, memory_ledger, capacity_mb):
 def classify_training_bottleneck(evidence, capacity_alert_ratio=0.90, hotspot_share=0.40):
     if not evidence.get('stable', False):
         return {'status': 'rerun_required', 'hypothesis': 'measurement_unstable', 'evidence': ['step_time_cv'], 'next_experiment': 'repeat_training_baseline'}
-    if evidence['capacity_ratio'] >= capacity_alert_ratio:
+    # TODO 3：判断容量是否已形成瓶颈
+    capacity_is_high = evidence['capacity_ratio'] >= capacity_alert_ratio
+    if capacity_is_high:
         return {'status': 'ready', 'hypothesis': 'training_capacity_pressure', 'evidence': ['peak_memory_mb', 'capacity_ratio', 'memory_ledger'], 'next_experiment': '76_activation_checkpoint_offload'}
     if evidence['dominant_stage_share'] >= hotspot_share:
         stage = evidence['dominant_stage']
