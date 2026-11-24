@@ -349,7 +349,7 @@ export default defineConfig({
         text: '第二部分：PyTorch 核心算法',
         items: [
           { text: '部分导读', link: '/02_PyTorch_Algorithms/intro' },
-          { text: '小白入门（逐本导读）', link: '/02_PyTorch_Algorithms/beginner/intro' },
+          { text: '小白入门（逐本导读）', link: '/02_PyTorch_Algorithms/beginner' },
           {
             text: '2.1 Decoder 组件与注意力',
             collapsed: true,
