@@ -18,7 +18,7 @@
 
 ## 运行环境
 
-- **GPU练习：** 使用[算子环境](../topic_discussion/operator_optimization/quickstart.md#triton-environment)，运行[题目与测试](#mechanism-practice)。需要NVIDIA GPU、CUDA版PyTorch、Triton及PyTorch的Triton算子注册接口；普通调用与完整图调用分别核对前向和一阶反向。
+- **GPU练习：** 使用[算子环境](../topic_discussion/operator_optimization/quickstart.md#triton-environment)，运行[题目与测试](#mechanism-practice)。需要NVIDIA GPU、CUDA版PyTorch与Triton。较新版本的PyTorch提供`triton_op`与`wrap_triton`；旧版本由导入单元自动切换到`custom_op`兼容路径（详见Step 2的版本说明），普通调用与完整图调用仍分别核对前向和一阶反向。
 
 ## 前置阅读
 
@@ -43,6 +43,8 @@
 
 ![不透明算子边界与可追踪Triton封装的分析范围](../public/03_Triton_Kernels/19_operator_boundary_visibility.svg)
 
+**版本说明：** `triton_op`与`wrap_triton`由较新的PyTorch提供，本文按2.11的接口书写。若当前环境没有这两个接口，导入单元会改用`custom_op`建立不透明边界，并登记与输出同形的Fake实现，使`torch.compile`仍能完成整图追踪。两条路径的内核、autograd注册与TODO完全相同，测试报告的`backend`字段说明本次实际走的是哪条路径。
+
 ## Step 3：保存的值怎样与上游梯度组成输入梯度
 
 缩放 $y_i=\alpha x_i$ 的输入梯度为 $\alpha g_i$，其中 $g_i=\partial L/\partial y_i$ 是实际传回的上游梯度。例如 $\alpha=0.5$、 $g=(-2,0,3)$ 时，输入梯度为 $(-1,0,1.5)$。各位置保留自己的上游贡献，前向的Python标量系数只用来计算输入梯度。
@@ -60,15 +62,15 @@ $$
 
 先完成缩放的三个局部机制点，再完成Softmax的概率保存与封装反向调用。骨架提供07／08中的行归一化和梯度内核、算子注册、独立输出、掩码和启动。缩放接收非空连续CUDA FP32张量与有限Python浮点系数；Softmax接收非空连续二维CUDA FP32张量，行宽1–4096，反向适配非连续及广播上游梯度。系数只参与输入梯度计算，训练核对范围为一阶求导。
 
-测试分别对照普通与整图调用的输出、梯度、输入原值和独立存储；Softmax另用切片、常量广播与零梯度检查保存状态和布局适配。补全下表变量后，移除相应局部未完成保护。
+测试分别对照普通与整图调用的输出、梯度、输入原值和独立存储；Softmax另用切片、常量广播与零梯度检查保存状态和布局适配。缩放与Softmax的保存值各有一组CPU上下文核对，反向封装还会在启动前拒绝形状或类型不匹配的上游梯度。补全下表变量后，移除相应局部未完成保护。
 
 | TODO / 函数 | 待实现的机制 | 必须满足的约束 | 测试证据 |
 | --- | --- | --- | --- |
 | TODO 1 / scale_kernel | 计算逐元素缩放 | 使用当前系数，只写有效位置 | 五档长度与四种系数的参考对照 |
-| TODO 2 / setup_context | 保存当前缩放系数 | 反向读取同一次前向的系数 | 正负及零系数下的输入梯度 |
-| TODO 3 / backward | 将上游梯度乘以系数 | 逐位置传回输入梯度，标量返回None | 非均匀、零上游梯度及编译反向 |
+| TODO 2 / setup_context | 保存当前缩放系数 | 反向读取同一次前向的系数 | CPU上下文核对保存值；正负及零系数下的输入梯度 |
+| TODO 3 / backward | 将上游梯度乘以系数 | 逐位置传回输入梯度，标量返回None | 非均匀、零上游梯度及编译反向；标量返回None |
 | TODO 4 / softmax_setup_context | 保存当前输出概率 | 将同一次前向的y交给save_for_backward | 保存对象核对及不同概率下的反向结果 |
-| TODO 5 / triton_row_softmax_grad、softmax_backward | 适配梯度布局并经封装反向调用 | 保留同一次y与g，将切片／广播视图整理为连续行 | 调用实参核对、三种梯度布局及普通／整图数值对照 |
+| TODO 5 / triton_row_softmax_grad、softmax_backward | 适配梯度布局并经封装反向调用 | 保留同一次y与g，将切片／广播视图整理为连续行 | 调用实参核对、三种梯度布局、普通／整图数值对照与非法梯度拒绝 |
 
 
 ```python
@@ -79,7 +81,36 @@ import math
 import torch
 import triton
 import triton.language as tl
-from torch.library import triton_op, wrap_triton
+
+try:
+    # 较新的PyTorch提供可追踪的Triton算子封装。
+    from torch.library import triton_op, wrap_triton
+
+    OPERATOR_BACKEND = "triton_op"
+except ImportError:
+    # 旧版PyTorch没有triton_op：改用不透明custom_op兼容，内核与TODO保持不变。
+    from torch.library import custom_op
+
+    OPERATOR_BACKEND = "custom_op"
+
+    def wrap_triton(kernel):
+        """custom_op已经提供编译边界，内核可以直接启动。"""
+        return kernel
+
+    def triton_op(name, mutates_args=()):
+        """用custom_op模拟triton_op，并登记与首个张量输入同形的Fake实现。"""
+
+        def decorator(function):
+            operator = custom_op(name, mutates_args=mutates_args)(function)
+
+            def fake(*args, **kwargs):
+                sample = next(value for value in args if isinstance(value, torch.Tensor))
+                return torch.empty_like(sample)
+
+            operator.register_fake(fake)
+            return operator
+
+        return decorator
 
 ```
 
@@ -223,7 +254,7 @@ triton_row_softmax.register_autograd(softmax_backward, setup_context=softmax_set
 
 ## 正确性测试
 
-先运行缩放的普通与整图前后向矩阵，再核对Softmax保存的概率与反向调用实参、六档普通形状及两档整图形状。三种上游梯度分别覆盖非连续切片、零步长广播和全零。上下文对象核对使用CPU张量，设备内核与完整编译仍由GPU用例验证。
+先运行缩放的普通与整图前后向矩阵，再核对Softmax保存的概率与反向调用实参、六档普通形状及两档整图形状。三种上游梯度分别覆盖非连续切片、零步长广播和全零。缩放的系数保存、Softmax的输出概率保存各用一组CPU上下文核对；反向封装另测三类非法上游梯度。设备内核与完整编译仍由GPU用例验证。
 
 
 ```python
@@ -239,9 +270,26 @@ def check_scale_behavior(function, size, alpha):
     upstream = torch.linspace(-2.0, 3.0, size, device="cuda")
     gradient, = torch.autograd.grad(actual, x, grad_outputs=upstream, retain_graph=True)
     torch.testing.assert_close(gradient, alpha * upstream, atol=1e-6, rtol=1e-6)
+    assert gradient.shape == x.shape and gradient.dtype == x.dtype and gradient.device == x.device
     zero_gradient, = torch.autograd.grad(actual, x, grad_outputs=torch.zeros_like(actual))
     torch.testing.assert_close(zero_gradient, torch.zeros_like(x), atol=0, rtol=0)
     return float((gradient - alpha * upstream).abs().max())
+
+
+def check_scale_saved_state():
+    """用CPU对象核对前向保存的系数，以及反向的乘法与None返回。"""
+    class Context:
+        pass
+
+    values = torch.tensor([1.0, -2.0, 0.5])
+    upstream = torch.tensor([-2.0, 0.0, 3.0])
+    for alpha in (0.5, -1.5, 0.0):
+        ctx = Context()
+        setup_context(ctx, (values, alpha), values * alpha)
+        assert ctx.alpha == alpha, "应保存本轮前向使用的系数"
+        grad_input, scalar_gradient = backward(ctx, upstream)
+        torch.testing.assert_close(grad_input, alpha * upstream)
+        assert scalar_gradient is None, "Python标量系数不需要梯度"
 
 
 def check_softmax_saved_state():
@@ -257,6 +305,8 @@ def check_softmax_saved_state():
     ctx = Context()
     softmax_setup_context(ctx, (logits,), probabilities)
     assert len(ctx.saved_tensors) == 1 and ctx.saved_tensors[0] is probabilities
+    assert ctx.saved_tensors[0].data_ptr() == probabilities.data_ptr()
+    assert ctx.saved_tensors[0].data_ptr() != logits.data_ptr(), "应保存概率而不是logits"
     calls = []
     sentinel_result = torch.full_like(probabilities, 123.0)
 
@@ -269,6 +319,25 @@ def check_softmax_saved_state():
         actual = softmax_backward(ctx, upstream)
     assert actual is sentinel_result, "反向应返回已封装算子的结果"
     assert len(calls) == 1 and calls[0][0] is probabilities and calls[0][1] is upstream
+
+
+def check_softmax_grad_constraints():
+    """核对反向封装在启动内核前拒绝不匹配的形状与类型。"""
+    probabilities = torch.ones((2, 3), device="cuda", dtype=torch.float32)
+    invalid_pairs = (
+        (probabilities, torch.ones((2, 4), device="cuda", dtype=torch.float32)),
+        (probabilities, torch.ones((2, 3), device="cuda", dtype=torch.float16)),
+        (torch.ones(6, device="cuda", dtype=torch.float32),
+         torch.ones(6, device="cuda", dtype=torch.float32)),
+    )
+    for candidate, upstream in invalid_pairs:
+        try:
+            triton_row_softmax_grad(candidate, upstream)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("反向输入约束未被执行")
+    return len(invalid_pairs)
 
 
 def check_softmax_behavior(function, shape):
@@ -304,6 +373,8 @@ def check_softmax_behavior(function, shape):
             actual_gradient, expected_gradient, atol=2e-5, rtol=3e-4,
             msg=f"Softmax反向错误：shape={shape}, upstream_case={index}",
         )
+        assert (actual_gradient.shape == x.shape and actual_gradient.dtype == x.dtype
+                and actual_gradient.device == x.device)
         torch.testing.assert_close(upstream, before, rtol=0, atol=0)
         torch.testing.assert_close(actual.detach(), saved_output, rtol=0, atol=0)
         torch.testing.assert_close(actual_gradient.sum(-1), torch.zeros(rows, device=x.device, dtype=x.dtype),
@@ -331,9 +402,10 @@ def check_softmax_integration():
             pass
         else:
             raise AssertionError("Softmax输入约束未被执行")
+    grad_invalid_cases = check_softmax_grad_constraints()
     return {
         "eager_shapes": len(eager_errors), "compiled_shapes": len(compiled_errors),
-        "upstream_patterns": 3,
+        "upstream_patterns": 3, "grad_invalid_cases": grad_invalid_cases,
         "max_gradient_error": max(eager_errors + compiled_errors),
         "scope": "row_softmax_first_order_autograd",
     }
@@ -367,10 +439,11 @@ def test_triton_op_integration():
             pass
         else:
             raise AssertionError("非法类型、布局或系数未被拒绝")
+    check_scale_saved_state()
     check_softmax_saved_state()
     softmax_report = check_softmax_integration()
-    report = {"status": "passed", "softmax": softmax_report, "eager_cases": len(errors),
-              "compiled_forward_backward_cases": len(compiled_errors),
+    report = {"status": "passed", "backend": OPERATOR_BACKEND, "softmax": softmax_report,
+              "eager_cases": len(errors), "compiled_forward_backward_cases": len(compiled_errors),
               "invalid_cases": len(invalid), "max_gradient_error": max(errors + compiled_errors)}
     print(report)
     return report
@@ -492,6 +565,7 @@ def triton_row_softmax_grad(probabilities: torch.Tensor, upstream: torch.Tensor)
     if rows < 1 or not 1 <= columns <= 4096:
         raise ValueError("行数须为正，列数须为1至4096")
     # TODO 5：把概率与切片／广播梯度整理为反向内核使用的连续行。
+    # 已经连续时contiguous()不复制；非连续或广播视图则在这里整理成连续行。
     y, gradient = probabilities.contiguous(), upstream.contiguous()
     result = torch.empty_like(y)
     with torch.cuda.device(y.device):
@@ -505,6 +579,7 @@ def triton_row_softmax_grad(probabilities: torch.Tensor, upstream: torch.Tensor)
 def softmax_setup_context(ctx, inputs, output):
     """保存同一次前向的输出概率，供一阶反向复用。"""
     # TODO 4：保存输出概率；saved_probabilities = ???，选择当前前向的必要张量。
+    # 反向公式使用概率y而不是输入logits，因此保存本次前向的output。
     saved_probabilities = output
     ctx.save_for_backward(saved_probabilities)
 
@@ -529,11 +604,11 @@ triton_row_softmax.register_autograd(softmax_backward, setup_context=softmax_set
 
 #### TODO 2：反向使用同一次前向的系数
 
-缩放的局部导数只依赖α，因此保存本轮标量即可。正、负、零系数下的梯度对照要求读取各自前向的值；保存固定常数会在其他系数上失败。
+缩放的局部导数只依赖α，因此保存本轮标量即可。正、负、零系数下的梯度对照要求读取各自前向的值；保存固定常数会在其他系数上失败。CPU上下文核对直接检查`ctx.alpha`就是本次传入的系数，使“保存同一次前向的α”与后续数值结果分开验证。系数在kernel签名中声明为编译期常量，只改变前向内核的特化方式；反向仍读取本轮保存的数值。
 
 #### TODO 3：保留逐位置上游梯度
 
-输入梯度由实际grad_output乘以保存的系数得到，Python标量输入对应返回None。非均匀梯度检查位置差异，零梯度检查零贡献；普通与整图调用分别核对同一规则。
+输入梯度由实际grad_output乘以保存的系数得到，Python标量输入对应返回None。非均匀梯度检查位置差异，零梯度检查零贡献；普通与整图调用分别核对同一规则，CPU上下文核对则确认返回的第二个位置是None。
 
 #### TODO 4：把输出概率交给反向保存机制
 
@@ -541,7 +616,11 @@ Softmax反向公式依赖y，所以选择本轮输出，并通过save_for_backwa
 
 #### TODO 5：经过已封装的反向算子传回梯度
 
-从saved_tensors取出y，与实际grad_output一起传给triton_row_softmax_grad，再返回它生成的输入梯度。反向内核按连续行寻址，因此封装先分别连续化概率与上游梯度；这使切片的大列步长和广播的零步长都对应到正确元素，再通过wrap_triton启动内核。调用记录核对两个实参与返回对象，GPU测试比较三种上游梯度的数值；整图用例进一步检查前后向能否被编译调用。
+从saved_tensors取出y，与实际grad_output一起传给triton_row_softmax_grad，再返回它生成的输入梯度。反向内核按连续行寻址，因此封装先分别连续化概率与上游梯度；已经连续的张量不会复制，切片的大列步长和广播的零步长则在这里整理为连续行，再通过wrap_triton启动内核。调用记录核对两个实参与返回对象，GPU测试比较三种上游梯度的数值；非法形状与类型在启动前被拒绝，整图用例进一步检查前后向能否被编译调用。
+
+#### 版本兼容路径
+
+导入单元优先使用`triton_op`与`wrap_triton`；旧版PyTorch没有这两个接口时，用`custom_op`建立同样的不透明边界，并登记一个与首个张量输入同形的Fake实现。两条路径只改变算子边界的实现方式：内核、autograd注册、TODO与数值核对都相同。`wrap_triton`在兼容路径中直接返回内核，因为`custom_op`本身已经隔开了编译器；测试报告中的`backend`字段记录本次运行实际使用的路径。
 
 ## 相关阅读
 
@@ -549,3 +628,4 @@ Softmax反向公式依赖y，所以选择本轮输出，并通过save_for_backwa
 
 - [PyTorch：Triton内核与torch.compile组合教程](https://docs.pytorch.org/tutorials/recipes/torch_compile_user_defined_triton_kernel_tutorial.html)：重点看训练支持，以及反向调用Triton内核时的封装方式。
 - [PyTorch 2.11：triton_op](https://docs.pytorch.org/docs/2.11/library.html#torch.library.triton_op)：核对可追踪封装、输入修改约定与wrap_triton调用要求。
+- [PyTorch：custom_op](https://docs.pytorch.org/docs/stable/library.html#torch.library.custom_op)：旧版兼容路径使用的不透明算子边界与Fake实现登记规则。
